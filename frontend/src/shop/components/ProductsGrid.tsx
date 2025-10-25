@@ -3,7 +3,7 @@ import type { Product } from '@/mocks/products.mock'
 import { Filter, Grid, List } from 'lucide-react';
 import { ProductCard } from './ProductCard';
 import { FilterSidebar } from './FilterSidebar';
-import { useParams, useSearchParams } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { useState } from 'react';
 
 interface Props {
@@ -99,16 +99,21 @@ export const ProductsGrid = ({ products }: Props) => {
                                         : "space-y-4"
                                 }
                             >
+
+
                                 {products.map((product) => (
-                                    <ProductCard
-                                        key={product.id}
-                                        id={product.id}
-                                        name={product.name}
-                                        price={product.price}
-                                        image={product.image}
-                                        category={product.category}
-                                    />
+                                    <Link to={`/product/${product.id}`} key={product.id}>
+                                        <ProductCard
+                                            key={product.id}
+                                            id={product.id}
+                                            name={product.name}
+                                            price={product.price}
+                                            image={product.image}
+                                            category={product.category}
+                                        />
+                                    </Link>
                                 ))}
+
                             </div>
 
                         </div>
