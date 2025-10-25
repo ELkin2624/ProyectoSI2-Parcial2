@@ -4,7 +4,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useSearchParams } from "react-router";
 
-const FilterSidebar = () => {
+export const FilterSidebar = () => {
 
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -121,4 +121,3 @@ const FilterSidebar = () => {
     );
 };
 
-export default FilterSidebar;
