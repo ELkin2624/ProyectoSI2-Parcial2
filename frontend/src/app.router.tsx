@@ -11,6 +11,7 @@ import { DashboardPage } from "./admin/pages/dashboard/DashboardPage";
 import { AdminProductsPage } from "./admin/pages/products/AdminProductsPage";
 import { AdminProductPage } from "./admin/pages/product/AdminProductPage";
 import { lazy } from "react";
+import { CartPage } from "./shop/pages/cart/CartPage";
 
 const AuthLayouts = lazy(() => import("./auth/layouts/AuthLayouts"));
 const AdminLayout = lazy(() => import('./admin/layouts/AdminLayout'))
@@ -32,6 +33,10 @@ export const appRouter = createBrowserRouter([
             {
                 path: 'gender/:gender',
                 element: <GenderPage />
+            },
+            {
+                path: 'cart',
+                element: <CartPage />
             }
         ]
     },
