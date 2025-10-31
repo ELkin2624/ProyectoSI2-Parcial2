@@ -27,6 +27,8 @@ INSTALLED_APPS = [
     'apps.ecommerce.productos',
     'apps.ecommerce.pedidos',
     'apps.ecommerce.pagos',
+    'apps.ecommerce.carritos',
+    'apps.ecommerce.inventario'
 ]
 
 AUTH_USER_MODEL = 'usuarios.CustomUser'
