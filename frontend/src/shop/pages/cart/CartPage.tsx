@@ -1,9 +1,5 @@
-"use client"
-
-
 import { Button } from "@/components/ui/button"
-import { products } from "@/mocks/products.mock"
-import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react"
+import { Minus, Plus, Trash2 } from "lucide-react"
 import { Link } from "react-router"
 
 interface CartItem {
@@ -68,7 +64,7 @@ export const CartPage = () => {
                                 {items.map((item) => (
                                     <div key={item.id} className="flex gap-6 p-6 border border-border bg-card">
                                         {/* Product Image */}
-                                        <div className="relative h-32 w-24 flex-shrink-0 bg-muted overflow-hidden">
+                                        <div className="relative h-32 w-24 shrink-0 bg-muted overflow-hidden">
                                             <img src={item.image || "/placeholder.svg"} alt={item.name} className="object-cover" />
                                         </div>
 

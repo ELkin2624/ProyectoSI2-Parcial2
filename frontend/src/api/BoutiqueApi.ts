@@ -7,7 +7,15 @@ const boutiqueApi = axios.create({
 })
 
 
-// TODO: interceptores
+boutiqueApi.interceptors.request.use((config) => {
+
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+
+    return config
+})
 
 
 export { boutiqueApi }

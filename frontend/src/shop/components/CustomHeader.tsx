@@ -1,19 +1,21 @@
-import { Search, ShoppingBag, Menu } from "lucide-react";
+import { Search, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRef, useState, type KeyboardEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router";
 import { cn } from "@/lib/utils";
 import { CustomLogo } from "@/components/custom/CustomLogo";
+import { useAuthStore } from "@/auth/store/auth.store";
 
 
 const Header = () => {
     const [cartCount] = useState(3);
 
+    const { authStatus, isAdmin, logout } = useAuthStore();
+
     const [searchParams, setSearchParams] = useSearchParams();
     const { gender } = useParams();
 
-    console.log({ gender })
 
 
     const query = searchParams.get('query') || '';
@@ -98,33 +100,52 @@ const Header = () => {
                         <Search className="h-5 w-5" />
                     </Button>
 
-                    <Link to={'/auth/login'}>
-                        <Button
-                            variant='default'
-                            size='sm'
-                            className="ml-3"
-                        >
-                            Login
+
+                    {
+                        authStatus === 'not-authenticated' ? (
+                            <Link to={'/auth/login'}>
+                                <Button
+                                    variant='default'
+                                    size='sm'
+                                    className="ml-3"
+                                >
+                                    Login
+                                </Button>
+                            </Link>
+                        ) : (
+                            <Button
+                                variant='outline'
+                                size='sm'
+                                className="ml-3"
+                                onClick={logout}
+                            >
+                                Cerrar sesion
+                            </Button>
+                        )
+                    }
+
+                    {
+                        isAdmin() &&
+                        (<Link to={'/admin'}>
+                            <Button
+                                variant='destructive'
+                                size='sm'
+
+                            >
+                                Admin
+                            </Button>
+                        </Link>)
+                    }
+
+                    {/* Button cart */}
+                    <Link to={'/cart'}>
+                        <Button variant="ghost" size="icon" className="relative">
+                            <ShoppingBag className="h-5 w-5" />
+                            {cartCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                                {cartCount}
+                            </span>}
                         </Button>
                     </Link>
-
-                    <Link to={'/admin'}>
-                        <Button
-                            variant='destructive'
-                            size='sm'
-
-                        >
-                            Admin
-                        </Button>
-                    </Link>
-
-
-                    <Button variant="ghost" size="icon" className="relative">
-                        <ShoppingBag className="h-5 w-5" />
-                        {cartCount > 0 && <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                            {cartCount}
-                        </span>}
-                    </Button>
                 </div>
             </div>
         </div>
