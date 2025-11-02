@@ -25,7 +25,6 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) 
   const { pathname } = useLocation();
   const { user } = useAuthStore();
 
-  console.log({ pathname })
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', to: '/admin' },
@@ -76,7 +75,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) 
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
-                  <Icon size={20} className="flex-shrink-0" />
+                  <Icon size={20} className="shrink-0" />
                   {!isCollapsed && (
                     <span className="font-medium">{item.label}</span>
                   )}
@@ -91,7 +90,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) 
       {!isCollapsed && (
         <div className="p-4 border-t border-gray-200">
           <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 bg-linear-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
               {user?.fullName.substring(0, 2)}
             </div>
             <div className="flex-1 min-w-0">
