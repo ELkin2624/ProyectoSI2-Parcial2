@@ -1,11 +1,11 @@
 import React, { useRef, type KeyboardEvent } from 'react';
 import { Search, Bell, MessageSquare, Settings } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 export const AdminHeader: React.FC = () => {
 
 
-  const [searchParams, setSearchParams] = useSearchParams();
+
   const navigate = useNavigate();
 
   const handleSearch = (event: KeyboardEvent<HTMLInputElement>) => {
