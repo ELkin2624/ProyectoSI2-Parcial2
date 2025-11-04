@@ -103,6 +103,23 @@ class Address(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def save(self, *args, **kwargs):
+        """
+        Sobrescribe el método save para asegurar que solo una dirección
+        de cada tipo (envío/facturación) sea la predeterminada.
+        """
+        # Si esta dirección se está marcando como la predeterminada
+        if self.is_default:
+            # Busca otras direcciones del MISMO usuario y del MISMO tipo que ya sean predeterminadas y quítales esa marca.
+            Address.objects.filter(
+                user=self.user, 
+                address_type=self.address_type, 
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+        
+        # Llama al método save() original para guardar el objeto
+        super(Address, self).save(*args, **kwargs)
+
     def __str__(self):
         return f'{self.get_address_type_display()} de {self.user.email} - {self.street_address}'
     

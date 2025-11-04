@@ -1,7 +1,8 @@
 # orders/models.py
 from django.db import models
 from django.conf import settings
-from productos.models import ProductoVariante
+from ..productos.models import ProductoVariante
+import uuid
 
 class Pedido(models.Model):
     class EstadoPedido(models.TextChoices):

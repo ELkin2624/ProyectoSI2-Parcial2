@@ -1,6 +1,6 @@
-# inventory/models.py
+# /ecommerce/inventario/models.py
 from django.db import models
-from productos.models import ProductoVariante 
+from ..productos.models import ProductoVariante 
 
 class Almacen(models.Model):
     """Define tus almacenes físicos o lógicos."""
@@ -30,7 +30,6 @@ class Stock(models.Model):
     class Meta:
         verbose_name = "Registro de Stock"
         verbose_name_plural = "Registros de Stock"
-        # Asegura que solo haya UN registro por variante y almacén
         unique_together = ('variante', 'almacen')
 
     def __str__(self):

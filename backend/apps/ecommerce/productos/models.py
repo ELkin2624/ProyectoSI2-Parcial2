@@ -1,11 +1,11 @@
-# products/models.py
+# productos/models.py
 from django.db import models
 from django.utils.text import slugify
 from cloudinary.models import CloudinaryField 
+from django.db.models import Sum
 import uuid 
 
 # --- Categorías ---
-
 class Categoria(models.Model):
     """
     Categoría recursiva.
@@ -47,9 +47,9 @@ class Categoria(models.Model):
             full_path.append(k.nombre)
             k = k.padre
         return ' > '.join(full_path[::-1])
+    
 
 # --- Atributos (Talla, Color, etc.) ---
-
 class Atributo(models.Model):
     """Ej: 'Talla', 'Color', 'Material'"""
     nombre = models.CharField(max_length=100, unique=True, 
@@ -76,8 +76,8 @@ class ValorAtributo(models.Model):
     def __str__(self):
         return f"{self.atributo.nombre}: {self.valor}"
 
-# --- Productos y Variantes (El núcleo) ---
 
+# --- Productos y Variantes (El núcleo) ---
 class Producto(models.Model):
     """
     El producto 'plantilla'. No tiene precio ni stock por sí mismo.
@@ -125,22 +125,23 @@ class ProductoVariante(models.Model):
     precio_oferta = models.DecimalField(max_digits=10, decimal_places=2, 
                                         blank=True, null=True)
     
-    # La combinación de valores que define esta variante
-    # Ej: [Valor: 'Azul', Valor: 'M']
     valores = models.ManyToManyField(ValorAtributo, related_name='variantes')
     
+    imagen_variante = CloudinaryField(
+        'producto_imagenes', 
+        blank=True, 
+        null=True,
+        help_text="Imagen específica que muestra esta variante (ej: el color)"
+    )
     activo = models.BooleanField(default=True, 
                                  help_text="Esta variante específica está a la venta")
 
     class Meta:
         verbose_name = "Variante de Producto"
         verbose_name_plural = "Variantes de Producto"
-        # Evita variantes duplicadas para el mismo producto
-        # (Esto se maneja mejor en el form/serializer, pero es una guía)
 
     def save(self, *args, **kwargs):
         if not self.sku:
-            # Genera un SKU simple
             self.sku = f"{self.producto.slug.upper()}-{uuid.uuid4().hex[:8].upper()}"
         super().save(*args, **kwargs)
 
@@ -148,17 +149,28 @@ class ProductoVariante(models.Model):
         # Genera un nombre descriptivo: "Camisa de Lino (Azul, M)"
         valores_str = ", ".join(str(v.valor) for v in self.valores.all())
         return f"{self.producto.nombre} ({valores_str})"
+    
+    @property
+    def stock_total(self):
+        """
+        Calcula y devuelve el stock total de esta variante
+        sumando el stock de TODOS los almacenes.
+        """
+        total = self.stock_records.aggregate(
+            total_stock=Sum('cantidad')
+        )['total_stock']
+        return total or 0
 
 class ImagenProducto(models.Model):
     """
     Tabla separada para imágenes, vinculada a la VARIANTE.
     Así, la 'Camisa Azul' muestra fotos azules.
     """
-    variante = models.ForeignKey(ProductoVariante, on_delete=models.CASCADE, 
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, 
                                  related_name='imagenes')
     imagen = CloudinaryField('producto_imagenes')
     alt_text = models.CharField(max_length=255, blank=True, 
-                                help_text="Texto alternativo para SEO y accesibilidad")
+                                help_text="Imagen ropa")
     es_principal = models.BooleanField(default=False, 
                                        help_text="La imagen principal de esta variante")
 

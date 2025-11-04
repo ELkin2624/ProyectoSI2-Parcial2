@@ -1,0 +1,46 @@
+# ===========================
+# REGLAS GENERALES DEL PROYECTO
+# ===========================
+
+# Archivos de entorno
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Archivos de configuración de sistema
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editores de código
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs generales
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Archivos de respaldo
+*.bak
+*.backup
+
+# Archivos comprimidos
+*.zip
+*.tar.gz
+*.rar
+*.7z

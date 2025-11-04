@@ -1,7 +1,7 @@
 # cart/models.py
 from django.db import models
 from django.conf import settings # Para el modelo User
-from productos.models import ProductoVariante
+from ..productos.models import ProductoVariante
 import uuid
 
 class Carrito(models.Model):
