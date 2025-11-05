@@ -166,7 +166,7 @@ class ImagenProducto(models.Model):
     Tabla separada para imágenes, vinculada a la VARIANTE.
     Así, la 'Camisa Azul' muestra fotos azules.
     """
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, 
+    producto = models.ForeignKey(Producto, on_delete=models.CASCADE, null=True, blank=True,
                                  related_name='imagenes')
     imagen = CloudinaryField('producto_imagenes')
     alt_text = models.CharField(max_length=255, blank=True, 

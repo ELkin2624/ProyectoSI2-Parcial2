@@ -26,10 +26,10 @@ INSTALLED_APPS = [
 
     'apps.usuarios',
     'apps.ecommerce.productos',
-    'apps.ecommerce.pedidos',
-    'apps.ecommerce.pagos',
+    'apps.ecommerce.inventario',
     'apps.ecommerce.carritos',
-    'apps.ecommerce.inventario'
+    'apps.ecommerce.pagos',
+    'apps.ecommerce.pedidos',
 ]
 
 AUTH_USER_MODEL = 'usuarios.CustomUser'
@@ -85,6 +85,9 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
