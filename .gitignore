@@ -1,0 +1,71 @@
+# ===========================
+# REGLAS GENERALES DEL PROYECTO
+# ===========================
+
+# Archivos de entorno
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+*.env
+*/.env
+
+# Archivos de configuración de sistema
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editores de código
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs generales
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Archivos de respaldo
+*.bak
+*.backup
+
+# Archivos comprimidos
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+db.sqlite3
+media/
+staticfiles/
+venv/
+
+# Node / React
+node_modules/
+build/
+dist/
+
+# IDEs y sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+"@ | Out-File -Encoding utf8 .gitignore
