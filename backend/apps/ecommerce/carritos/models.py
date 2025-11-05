@@ -1,4 +1,4 @@
-# cart/models.py
+# carritos/models.py
 from django.db import models
 from django.conf import settings # Para el modelo User
 from ..productos.models import ProductoVariante
@@ -22,8 +22,16 @@ class Carrito(models.Model):
 
     def __str__(self):
         if self.usuario:
-            return f"Carrito de {self.usuario.username}"
+            return f"Carrito de {self.usuario.email}"
         return f"Carrito anónimo {self.id}"
+    
+    @property
+    def total_carrito(self):
+        """
+        Calcula el total de todos los items en el carrito.
+        """
+        return sum(item.subtotal for item in self.items.all())
+
 
 class ItemCarrito(models.Model):
     """Un item dentro del carrito."""
@@ -40,3 +48,20 @@ class ItemCarrito(models.Model):
 
     def __str__(self):
         return f"{self.cantidad} x {self.variante.producto.nombre}"
+    
+    @property
+    def precio_final(self):
+        """
+        Devuelve el precio de oferta si existe, 
+        si no, el precio regular de la variante.
+        """
+        if self.variante.precio_oferta:
+            return self.variante.precio_oferta
+        return self.variante.precio
+    
+    @property
+    def subtotal(self):
+        """
+        Calcula el subtotal para este item (cantidad * precio_final).
+        """
+        return self.cantidad * self.precio_final
