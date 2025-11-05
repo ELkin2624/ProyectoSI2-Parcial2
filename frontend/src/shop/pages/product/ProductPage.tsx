@@ -2,46 +2,40 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
 import { useParams } from "react-router"
-import { products } from "@/mocks/products.mock"
-import { colorHexMap, defaultColorHex } from "@/mocks/colors.mock"
+
+import { useProduct } from "@/hooks/useProduct"
 
 
 
 export const ProductPage = () => {
 
-  const { idSlug } = useParams();
-  const productFromMock = products.find(p => p.id === idSlug);
+  const { idSlug } = useParams() || '1';
 
-  if (!productFromMock) {
-    return <div className="container mx-auto text-center py-20">Producto no encontrado</div>;
-  }
+  // const navigate = useNavigate();
 
 
-  const product = {
-    ...productFromMock,
-    colors: productFromMock.colors.map(colorname => ({
-      name: colorname,
-      hex: colorHexMap[colorname] || defaultColorHex,
-    }))
-  }
+  const { data: product } = useProduct(idSlug as string);
 
 
 
-  // const { addItem, totalItems, openCart } = useCart()
   const [selectedSize, setSelectedSize] = useState<string>("")
-  const [selectedColor, setSelectedColor] = useState<string>(product.colors[0].name)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
 
-  console.log({ idSlug })
+  // TODO: quitar este state
+
+
+  if (!product) {
+    return <div className="container mx-auto text-center py-20">Producto no encontrado</div>;
+  }
 
   const nextImage = () => {
-    // setCurrentImageIndex((prev) => (prev + 1) % product.images.length)
+    setCurrentImageIndex((prev) => (prev + 1) % product.images.length)
   }
 
   const prevImage = () => {
-    // setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length)
+    setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length)
   }
 
   const handleAddToCart = () => {
@@ -68,8 +62,8 @@ export const ProductPage = () => {
             <div className="space-y-4">
               <div className="relative aspect-3/4 bg-muted overflow-hidden group">
                 <img
-                  src={product.image[currentImageIndex] || "/placeholder.svg"}
-                  alt={product.name}
+                  src={product.images[currentImageIndex] || "/placeholder.svg"}
+                  alt={product.title}
                   className="object-cover"
                 />
                 <button
@@ -89,7 +83,7 @@ export const ProductPage = () => {
               </div>
 
               {/* Thumbnail Navigation */}
-              {/* <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 {product.images.map((image, index) => (
                   <button
                     key={index}
@@ -101,26 +95,26 @@ export const ProductPage = () => {
                   >
                     <img
                       src={image || "/placeholder.svg"}
-                      alt={`${product.name} view ${index + 1}`}
+                      alt={`${product.title} view ${index + 1}`}
                       className="object-cover"
                     />
                   </button>
                 ))}
-              </div> */}
+              </div>
             </div>
 
             {/* Product Info */}
             <div className="flex flex-col">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-balance">{product.name}</h2>
+                  <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-balance">{product.title}</h2>
                   <p className="mt-4 text-3xl font-light text-foreground">${product.price.toFixed(2)}</p>
                 </div>
 
                 <p className="text-base leading-relaxed text-muted-foreground">{product.description}</p>
 
                 {/* Color Selection */}
-                <div className="space-y-3">
+                {/* <div className="space-y-3">
                   <label className="text-sm font-light tracking-wide uppercase text-foreground">
                     Color: {selectedColor}
                   </label>
@@ -142,7 +136,7 @@ export const ProductPage = () => {
                       </button>
                     ))}
                   </div>
-                </div>
+                </div> */}
 
                 {/* Size Selection */}
                 <div className="space-y-3">
@@ -199,12 +193,12 @@ export const ProductPage = () => {
                 )}
 
                 {/* Product Details */}
-                {/* <div className="pt-8 border-t border-border space-y-3">
+                <div className="pt-8 border-t border-border space-y-3">
                   <h3 className="text-sm font-light tracking-wide uppercase text-foreground">Detalles del Producto</h3>
                   <h4>
                     {product.description}
                   </h4>
-                </div> */}
+                </div>
 
               </div>
             </div>
