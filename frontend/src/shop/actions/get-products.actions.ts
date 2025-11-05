@@ -16,7 +16,7 @@ export const getProductsAction = async (options: Options): Promise<ProductsRespo
 
     const { limit, offset, sizes, gender, maxPrice, minPrice, query } = options;
 
-    const { data } = await boutiqueApi.get<ProductsResponse>('/products', {
+    const { data } = await boutiqueApi.get<ProductsResponse>('/productos/productos/', {
         params: {
             limit,
             offset,
@@ -27,6 +27,8 @@ export const getProductsAction = async (options: Options): Promise<ProductsRespo
             q: query
         }
     });
+
+    console.log(data)
 
 
     const productsWithImageUrl = data.products.map(product => ({
