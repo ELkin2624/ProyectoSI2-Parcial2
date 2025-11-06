@@ -1,23 +1,30 @@
+// src/auth/store/auth.store.ts
 import type { User } from '@/interfaces/user.interface';
 import { create } from 'zustand'
 import { loginAction } from '../actions/login.action';
 import { checkAuthAction } from '../actions/check-auth.action';
 import { registerAction } from '../actions/register.action';
 
-
 type AuthStatus = 'authenticated' | 'not-authenticated' | 'checking';
-
-
+interface Group {
+    id: number;
+    name: string;
+}
+interface User {
+    id: string;
+    email: string;
+    first_name: string;
+    last_name: string;
+    groups: Group[]; 
+}
 type AuthState = {
-    //Properties
-    user: User | null,
-    token: string | null,
-    authStatus: AuthStatus,
-    //Getters
-
+    user: User | null;
+    access_token: string | null;  
+    refresh_token: string | null;
+    authStatus: AuthStatus;
+    
     isAdmin: () => boolean;
 
-    //Actions
     register: (email: string, password: string, fullName: string) => Promise<boolean>;
     login: (email: string, password: string) => Promise<boolean>;
     logout: () => void;
@@ -25,79 +32,78 @@ type AuthState = {
 };
 
 export const useAuthStore = create<AuthState>()((set, get) => ({
-    //Implementacion del store
     user: null,
-    token: null,
+    access_token: null,  
+    refresh_token: null, 
     authStatus: 'checking',
 
-    //Getters
     isAdmin: () => {
-        const roles = get().user?.roles || [];
-
-        return roles.includes('admin');
+        const groups = get().user?.groups || []; 
+        return groups.some(group => group.name === 'admin'); 
     },
 
-
-    //actions
     register: async (email: string, password: string, fullName: string) => {
-
         try {
-            const data = await registerAction(email, password, fullName);
-            localStorage.setItem('token', data.token);
-
-            set({ user: data.user, token: data.token, authStatus: 'authenticated' });
-            return true;
-
+            await registerAction(email, password, fullName);
+            return await get().login(email, password);
         } catch (error) {
-            localStorage.removeItem('token');
-            set({ user: null, token: null, authStatus: 'not-authenticated' });
+            console.log(error);
+            set({ user: null, access_token: null, refresh_token: null, authStatus: 'not-authenticated' });
             return false;
-
         }
-
-
     },
-    login: async (email: string, password: string) => {
-        console.log({ email, password });
 
+    login: async (email: string, password: string) => {
         try {
             const data = await loginAction(email, password);
-            localStorage.setItem('token', data.token);
-
-            set({ user: data.user, token: data.token, authStatus: 'authenticated' });
+            localStorage.setItem('access_token', data.access);
+            localStorage.setItem('refresh_token', data.refresh);
+            // 3. Obtiene los datos del usuario
+            const user = await checkAuthAction();
+            set({ 
+                user: user, 
+                access_token: data.access, 
+                refresh_token: data.refresh, 
+                authStatus: 'authenticated' 
+            });
             return true;
 
         } catch (error) {
-            localStorage.removeItem('token');
-            set({ user: null, token: null, authStatus: 'not-authenticated' });
+            console.log(error);
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            set({ user: null, access_token: null, refresh_token: null, authStatus: 'not-authenticated' });
             return false;
+        }
+    },
 
+    logout: () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        set({ user: null, access_token: null, refresh_token: null, authStatus: 'not-authenticated' });
+    },
+
+    checkAuthStatus: async () => {
+        const token = localStorage.getItem('access_token');
+        if (!token) {
+             set({ user: null, access_token: null, refresh_token: null, authStatus: 'not-authenticated' });
+            return false;
         }
 
-
-    },
-    logout: () => {
-        localStorage.removeItem('token');
-        set({ user: null, token: null });
-    },
-    checkAuthStatus: async () => {
         try {
-            const { token, user } = await checkAuthAction();
+            const user = await checkAuthAction();
             set({
                 user: user,
-                token: token,
+                access_token: localStorage.getItem('access_token'),
+                refresh_token: localStorage.getItem('refresh_token'),
                 authStatus: 'authenticated',
             })
             return true;
         } catch (error) {
-            set({
-                user: undefined,
-                token: undefined,
-                authStatus: 'not-authenticated',
-            })
+            console.log(error);
+            get().logout();
             return false;
         }
     }
-
 }))
 

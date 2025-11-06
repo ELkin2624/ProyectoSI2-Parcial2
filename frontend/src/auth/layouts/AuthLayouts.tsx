@@ -1,3 +1,4 @@
+// src/auth/layouts/AuthLayouts.tsx
 import { Outlet } from "react-router";
 
 const AuthLayouts = () => {
@@ -9,7 +10,5 @@ const AuthLayouts = () => {
         </div>
     )
 }
-
-
 
 export default AuthLayouts;

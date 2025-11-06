@@ -9,8 +9,6 @@ import { useAuthStore } from "./auth/store/auth.store"
 
 const queryClient = new QueryClient();
 
-
-
 const ChechAuthProvider = ({ children }: PropsWithChildren) => {
 
     const { checkAuthStatus } = useAuthStore()
