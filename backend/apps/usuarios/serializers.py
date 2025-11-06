@@ -102,8 +102,12 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         """
         # Quitamos password2, no se guarda en el modelo
         validated_data.pop('password2')
-        # Usamos create_user() para hashear la contraseña
         user = CustomUser.objects.create_user(**validated_data)
+        try:
+            cliente_group = Group.objects.get(name='cliente')
+            user.groups.add(cliente_group)
+        except Group.DoesNotExist:
+            print("ADVERTENCIA: El grupo 'cliente' no existe. El usuario no fue asignado.")
         return user
 
 
