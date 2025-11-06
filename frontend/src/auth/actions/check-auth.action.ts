@@ -1,20 +1,13 @@
+// src/auth/actions/check-auth.action.ts
 import { boutiqueApi } from "@/api/BoutiqueApi";
-import type { AuthResponse } from "../interfaces/auth.response";
+import type { User } from "@/interfaces/user.interface";
 
-
-
-export const checkAuthAction = async (): Promise<AuthResponse> => {
-
-    const token = localStorage.getItem('token');
-    if (!token) throw new Error('No token found');
-
+export const checkAuthAction = async (): Promise<User> => {
     try {
-        const { data } = await boutiqueApi.get<AuthResponse>('/auth/check-status');
-        localStorage.setItem('token', data.token)
+        const { data } = await boutiqueApi.get<User>('/api/usuarios/me/');
         return data;
     } catch (error) {
-        console.log(error)
-        localStorage.removeItem('token');
-        throw new Error('token expired or not valid');
+        console.log('Error en checkAuthAction:', error)
+        throw new Error('token no válido o expirado');
     }
 }

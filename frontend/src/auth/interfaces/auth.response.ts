@@ -1,7 +1,6 @@
-import type { User } from "@/interfaces/user.interface";
-
+// src/auth/interfaces/auth.response.ts
 export interface AuthResponse {
-    user: User;
-    token: string;
+    access: string;
+    refresh: string;
 }
 

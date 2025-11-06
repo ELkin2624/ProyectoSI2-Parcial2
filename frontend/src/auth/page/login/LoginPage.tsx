@@ -1,3 +1,4 @@
+// src/auth/page/login/LoginPage.tsx
 import { Link, useNavigate } from "react-router"
 import { useState, type FormEvent } from "react"
 import { toast } from "sonner"
@@ -7,18 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { CustomLogo } from "@/components/custom/CustomLogo"
-
 import { useAuthStore } from "@/auth/store/auth.store"
-
 
 export const LoginPage = () => {
 
     const navigate = useNavigate();
     const { login } = useAuthStore();
-
-
-
-
     const [isPosting, setIsPosting] = useState(false);
 
     const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
@@ -34,12 +29,9 @@ export const LoginPage = () => {
             navigate('/');
             return;
         }
-
         toast.error('Correo o/y contraseñas no validos');
         setIsPosting(false);
-
     }
-
 
     return (
         <div className={"flex flex-col gap-6"}>
@@ -48,9 +40,7 @@ export const LoginPage = () => {
                     <form className="p-6 md:p-8" onSubmit={handleLogin}>
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col items-center text-center">
-
                                 <CustomLogo />
-
                                 <p className="text-balance text-muted-foreground">
                                     Ingrese a nuestra aplicacino
                                 </p>

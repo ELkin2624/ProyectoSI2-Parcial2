@@ -1,3 +1,4 @@
+// src/auth/page/register/RegisterPage.tsx
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,36 +10,26 @@ import { useState, type FormEvent } from "react"
 import { toast } from "sonner"
 
 export const RegisterPage = () => {
-
     const [isPosting, setIsPosting] = useState(false);
-
     const navigate = useNavigate();
     const { register } = useAuthStore();
-
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-
         event.preventDefault();
         setIsPosting(true);
 
         const formData = new FormData(event.target as HTMLFormElement);
-
         const fullName = formData.get('fullName') as string;
         const password = formData.get('password') as string;
         const email = formData.get('email') as string;
-
         const isValid = await register(email, password, fullName);
 
         if (isValid) {
             navigate('/')
             return;
         }
-
         toast.error('UserName o/y Correo o/y contraseñas no validos');
         setIsPosting(false);
-
-
     }
-
 
     return (
         <div className={"flex flex-col gap-6"}>
@@ -47,9 +38,7 @@ export const RegisterPage = () => {
                     <form className="p-6 md:p-8" onSubmit={handleSubmit} >
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col items-center text-center">
-
                                 <CustomLogo />
-
                                 <p className="text-balance text-muted-foreground">
                                     Ingrese a nuestra aplicacino
                                 </p>
