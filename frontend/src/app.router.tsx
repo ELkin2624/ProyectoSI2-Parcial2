@@ -1,18 +1,14 @@
+import { lazy } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 
-import { ShopLayout } from "./shop/layouts/ShopLayout";
-import { HomePage } from "./shop/pages/home/HomePage";
-import { ProductPage } from "./shop/pages/product/ProductPage";
-import { GenderPage } from "./shop/pages/gender/GenderPage";
 
-import { LoginPage } from "./auth/page/login/LoginPage";
 import { RegisterPage } from "./auth/page/register/RegisterPage";
-import { DashboardPage } from "./admin/pages/dashboard/DashboardPage";
-import { AdminProductsPage } from "./admin/pages/products/AdminProductsPage";
-import { AdminProductPage } from "./admin/pages/product/AdminProductPage";
-import { lazy } from "react";
-import { CartPage } from "./shop/pages/cart/CartPage";
-import { AdminRoute, NotAuthenticatedRoute } from "./components/routes/ProtectedRoutes";
+import { LoginPage } from "./auth/page/login/LoginPage";
+import { ShopLayout } from "./shop/layouts/ShopLayout";
+import { HomePage, ProductPage, GenderPage, CartPage } from "./shop/pages";
+import { AdminCustomersPage, AdminProductPage, AdminProductsPage, AdminSalesHistoryPage, AdminSalesPage, DashboardPage } from "./admin/pages";
+import { NotAuthenticatedRoute, AdminRoute } from "./components/routes/ProtectedRoutes";
+
 
 const AuthLayouts = lazy(() => import("./auth/layouts/AuthLayouts"));
 const AdminLayout = lazy(() => import('./admin/layouts/AdminLayout'))
@@ -84,6 +80,18 @@ export const appRouter = createBrowserRouter([
             {
                 path: 'products/:id',
                 element: <AdminProductPage />
+            },
+            {
+                path: 'users',
+                element: <AdminCustomersPage />
+            },
+            {
+                path: 'sales',
+                element: <AdminSalesPage />
+            },
+            {
+                path: 'sales-history',
+                element: <AdminSalesHistoryPage />
             }
         ]
     },

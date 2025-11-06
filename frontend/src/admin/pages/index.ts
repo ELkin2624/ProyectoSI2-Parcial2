@@ -1,0 +1,7 @@
+export * from './customers/AdminCustomersPage';
+export * from './dashboard/DashboardPage';
+export * from './product/AdminProductPage';
+export * from './product/ui/ProductForm';
+export * from './products/AdminProductsPage';
+export * from './sales/AdminSalesPage';
+export * from './salesHistory/AdminSalesHistory';

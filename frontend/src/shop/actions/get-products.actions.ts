@@ -16,7 +16,7 @@ export const getProductsAction = async (options: Options): Promise<ProductsRespo
 
     const { limit, offset, sizes, gender, maxPrice, minPrice, query } = options;
 
-    const { data } = await boutiqueApi.get<ProductsResponse>('/productos/productos/', {
+    const { data } = await boutiqueApi.get<ProductsResponse>('/products/', {
         params: {
             limit,
             offset,
