@@ -7,8 +7,17 @@ from .models import (
     ProductoVariante, 
     ImagenProducto
 )
-# Importamos el serializador de la app de inventario
 from ..inventario.serializers import StockSerializer
+
+class CategoriaSimpleSerializer(serializers.ModelSerializer):
+    """
+    Serializador SÚPER LIGERO y NO-RECURSIVO.
+    Se usa solo para anidar dentro de otros modelos (como Producto).
+    """
+    class Meta:
+        model = Categoria
+        fields = ('id', 'nombre', 'slug') # Solo los campos básicos
+
 
 # --- Serializadores Base ---
 class CategoriaSerializer(serializers.ModelSerializer):
@@ -34,9 +43,7 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
     def get_hijos(self, obj):
         """Devuelve los hijos serializados."""
-        # Filtra solo los hijos directos
         hijos = Categoria.objects.filter(padre=obj)
-        # Serializa cada hijo usando el mismo serializador
         serializer = CategoriaSerializer(hijos, many=True, context=self.context)
         return serializer.data
 
@@ -73,8 +80,8 @@ class ImagenProductoSerializer(serializers.ModelSerializer):
             return obj.imagen.url
         return None
 
-# --- Serializadores de Producto y Variante (El Núcleo) ---
 
+# --- Serializadores de Producto y Variante (El Núcleo) ---
 class ProductoVarianteSerializer(serializers.ModelSerializer):
     """
     Serializador para la Variante (el SKU vendible).
@@ -127,7 +134,7 @@ class ProductoSerializer(serializers.ModelSerializer):
     Anida toda la información relevante para el frontend.
     """
     # --- Campos Anidados (Solo Lectura) ---
-    categoria = CategoriaSerializer(read_only=True)
+    categoria = CategoriaSimpleSerializer(read_only=True)
     atributos = AtributoSerializer(many=True, read_only=True)
     
     # Usamos los related_names

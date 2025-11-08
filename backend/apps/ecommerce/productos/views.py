@@ -31,7 +31,7 @@ class ProductoPublicListView(generics.ListAPIView):
     """
     (PÚBLICO) Lista todos los productos ACTIVOS para el catálogo de la tienda.
     """
-    queryset = Producto.objects.filter(activo=True)
+    queryset = Producto.objects.filter(activo=True).select_related('categoria')
     serializer_class = ProductoSerializer
     permission_classes = [permissions.AllowAny]
     # Aquí puedes añadir filtros (por categoría, precio, etc.)
