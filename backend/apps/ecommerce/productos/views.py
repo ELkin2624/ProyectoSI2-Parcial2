@@ -43,6 +43,7 @@ class ProductoPublicListView(generics.ListAPIView):
     (PÚBLICO) Lista todos los productos ACTIVOS para el catálogo de la tienda.
     OPTIMIZADO con prefetch_related para evitar N+1 queries.
     """
+    queryset = Producto.objects.filter(activo=True)
     serializer_class = ProductoSerializer
     permission_classes = [permissions.AllowAny]
     pagination_class = ProductoPagination
