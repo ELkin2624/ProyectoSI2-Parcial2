@@ -11,6 +11,10 @@
 *.env
 */.env
 
+venv/
+env/
+__pycache__/
+
 # Archivos de configuración de sistema
 .DS_Store
 .DS_Store?
