@@ -10,7 +10,9 @@ from ..pedidos.models import Pedido
 from .serializers import (
     PagoSerializer,
     PagoCreateSerializer,
-    QRComprobanteUploadSerializer
+    QRComprobanteUploadSerializer,
+    AdminPagoCreateSerializer,
+    AdminPagoSerializer
 )
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -36,11 +38,22 @@ class PagoCreateView(generics.CreateAPIView):
         # 3. Lógica según el método de pago
         if pago.metodo_pago == Pago.MetodoPago.STRIPE:
             # --- Lógica de Stripe ---
+            # Verificar que Stripe esté configurado
+            if not settings.STRIPE_SECRET_KEY:
+                pago.delete()  # Eliminar el pago creado
+                return Response(
+                    {"detail": "El método de pago con tarjeta no está disponible. Por favor usa QR/Transferencia."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
             try:
                 # 4. Crear un "Intento de Pago" en Stripe
+                # Convertir Decimal a float y luego a centavos
+                monto_centavos = int(float(pago.monto) * 100)
+                
                 intent = stripe.PaymentIntent.create(
                     # El monto debe estar en centavos
-                    amount=int(pago.monto * 100),
+                    amount=monto_centavos,
                     # TODO: Cambia 'usd' a 'bob' si tu cuenta de Stripe
                     # está configurada para Bolivianos.
                     currency='usd',
@@ -55,10 +68,14 @@ class PagoCreateView(generics.CreateAPIView):
                 pago.id_transaccion_pasarela = intent.id
                 pago.save()
                 
-                # 6. Devolver el client_secret al frontend
+                # 6. Devolver el client_secret y el pago_id al frontend
                 # Tu React usará esto para mostrar el formulario de tarjeta
                 return Response(
-                    {'client_secret': intent.client_secret},
+                    {
+                        'client_secret': intent.client_secret,
+                        'pago_id': str(pago.id),
+                        'payment_intent_id': intent.id
+                    },
                     status=status.HTTP_201_CREATED
                 )
 
@@ -193,12 +210,152 @@ class StripeWebhookView(APIView):
         return Response(status=status.HTTP_200_OK)
 
 
-# --- Vistas de Administración (Solo para ver) ---
-class AdminPagoViewSet(viewsets.ReadOnlyModelViewSet):
+# --- Vista para que el usuario vea sus propios pagos ---
+class ConfirmarPagoStripeView(APIView):
     """
-    (ADMIN) ViewSet de solo lectura para ver todos los pagos.
+    (CLIENTE) Confirma un pago de Stripe desde el frontend.
+    Esto es una alternativa temporal al webhook para desarrollo local.
     """
-    queryset = Pago.objects.all().order_by('-creado_en')
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        pago_id = request.data.get('pago_id')
+        payment_intent_id = request.data.get('payment_intent_id')
+
+        print(f"🔔 Confirmar Pago Stripe - pago_id: {pago_id}, payment_intent_id: {payment_intent_id}")
+
+        if not pago_id or not payment_intent_id:
+            return Response(
+                {"detail": "pago_id y payment_intent_id son requeridos."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Verificar que el pago existe y pertenece al usuario
+            pago = Pago.objects.get(
+                id=pago_id, 
+                pedido__usuario=request.user,
+                id_transaccion_pasarela=payment_intent_id
+            )
+            
+            print(f"✅ Pago encontrado: {pago.id}, estado actual: {pago.estado}")
+
+            # Verificar con Stripe que el pago fue exitoso
+            try:
+                intent = stripe.PaymentIntent.retrieve(payment_intent_id)
+                print(f"✅ PaymentIntent recuperado de Stripe, status: {intent.status}")
+                
+                if intent.status == 'succeeded':
+                    with transaction.atomic():
+                        # Actualizar el estado del Pago
+                        pago.estado = Pago.EstadoPago.COMPLETADO
+                        pago.save()
+                        print(f"✅ Pago actualizado a COMPLETADO: {pago.id}")
+                        
+                        # Actualizar el estado del Pedido
+                        pedido = pago.pedido
+                        pedido.estado = Pedido.EstadoPedido.PAGADO
+                        pedido.save()
+                        print(f"✅ Pedido actualizado a PAGADO: {pedido.id}")
+                    
+                    return Response(
+                        {"detail": "Pago confirmado exitosamente."},
+                        status=status.HTTP_200_OK
+                    )
+                else:
+                    return Response(
+                        {"detail": f"El pago no está completado. Estado: {intent.status}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                    
+            except stripe.error.StripeError as e:
+                return Response(
+                    {"detail": f"Error al verificar con Stripe: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        except Pago.DoesNotExist:
+            return Response(
+                {"detail": "Pago no encontrado o no tienes permiso para acceder."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class MisPagosListView(generics.ListAPIView):
+    """
+    (CLIENTE) Lista todos los pagos del usuario autenticado.
+    """
     serializer_class = PagoSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filtra solo los pagos del usuario autenticado."""
+        return Pago.objects.filter(
+            pedido__usuario=self.request.user
+        ).select_related(
+            'pedido',
+            'pedido__usuario'
+        ).order_by('-creado_en')
+
+
+# --- Vistas de Administración ---
+class AdminPagoViewSet(viewsets.ModelViewSet):
+    """
+    (ADMIN) ViewSet para gestionar todos los pagos.
+    Permite leer, crear y actualizar el estado de pagos (aprobar/rechazar QR).
+    """
+    queryset = Pago.objects.select_related(
+        'pedido',
+        'pedido__usuario'
+    ).all().order_by('-creado_en')
+    serializer_class = AdminPagoSerializer
     permission_classes = [permissions.IsAdminUser]
     filterset_fields = ['pedido', 'metodo_pago', 'estado']
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']  # GET, POST y PATCH
+    
+    def get_serializer_class(self):
+        """Usa serializer diferente para crear pagos."""
+        if self.action == 'create':
+            return AdminPagoCreateSerializer
+        # Para actualizaciones parciales, usar un serializer mínimo
+        if self.action == 'partial_update':
+            return PagoSerializer
+        return AdminPagoSerializer
+    
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Permite al admin cambiar el estado de un pago (aprobar/rechazar QR).
+        """
+        pago = self.get_object()
+        nuevo_estado = request.data.get('estado')
+        
+        if nuevo_estado not in ['COMPLETADO', 'FALLIDO']:
+            return Response(
+                {"detail": "Estado inválido. Use 'COMPLETADO' o 'FALLIDO'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                pago.estado = nuevo_estado
+                pago.save()
+                
+                # Si se aprueba el pago, actualizar el pedido
+                if nuevo_estado == 'COMPLETADO':
+                    pedido = pago.pedido
+                    pedido.estado = Pedido.EstadoPedido.PAGADO
+                    pedido.save()
+                
+                serializer = self.get_serializer(pago)
+                return Response(serializer.data)
+                
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

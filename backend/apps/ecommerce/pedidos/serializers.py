@@ -103,3 +103,44 @@ class PedidoUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pedido
         fields = ('estado',)
+
+
+# --- Serializador para Admin (Con datos expandidos del usuario) ---
+class AdminPedidoSerializer(serializers.ModelSerializer):
+    """
+    Serializador para admin que incluye datos expandidos del usuario.
+    """
+    items = ItemPedidoSerializer(many=True, read_only=True)
+    direccion_envio = DireccionPedidoSerializer(read_only=True)
+    pagos = PagoSerializer(many=True, read_only=True)
+    
+    # Expandir datos del usuario
+    usuario = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Pedido
+        fields = (
+            'id',
+            'usuario',
+            'email_cliente',
+            'estado',
+            'total_pedido',
+            'creado_en',
+            'actualizado_en',
+            'direccion_envio',
+            'items',
+            'pagos'
+        )
+        read_only_fields = ('id', 'usuario', 'email_cliente', 'total_pedido', 'creado_en', 'actualizado_en')
+    
+    def get_usuario(self, obj):
+        """
+        Devuelve los datos del usuario de forma expandida.
+        """
+        user = obj.usuario
+        return {
+            'id': user.id,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }

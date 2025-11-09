@@ -4,25 +4,16 @@ import { create } from 'zustand'
 import { loginAction } from '../actions/login.action';
 import { checkAuthAction } from '../actions/check-auth.action';
 import { registerAction } from '../actions/register.action';
+import { queryClient } from '@/Boutique';
 
 type AuthStatus = 'authenticated' | 'not-authenticated' | 'checking';
-interface Group {
-    id: number;
-    name: string;
-}
-interface User {
-    id: string;
-    email: string;
-    first_name: string;
-    last_name: string;
-    groups: Group[]; 
-}
+
 type AuthState = {
     user: User | null;
-    access_token: string | null;  
+    access_token: string | null;
     refresh_token: string | null;
     authStatus: AuthStatus;
-    
+
     isAdmin: () => boolean;
 
     register: (email: string, password: string, fullName: string) => Promise<boolean>;
@@ -31,15 +22,17 @@ type AuthState = {
     checkAuthStatus: () => Promise<boolean>;
 };
 
+
+
 export const useAuthStore = create<AuthState>()((set, get) => ({
     user: null,
-    access_token: null,  
-    refresh_token: null, 
+    access_token: null,
+    refresh_token: null,
     authStatus: 'checking',
 
     isAdmin: () => {
-        const groups = get().user?.groups || []; 
-        return groups.some(group => group.name === 'admin'); 
+        const user = get().user;
+        return user?.is_admin ?? false;
     },
 
     register: async (email: string, password: string, fullName: string) => {
@@ -60,11 +53,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
             localStorage.setItem('refresh_token', data.refresh);
             // 3. Obtiene los datos del usuario
             const user = await checkAuthAction();
-            set({ 
-                user: user, 
-                access_token: data.access, 
-                refresh_token: data.refresh, 
-                authStatus: 'authenticated' 
+            queryClient.invalidateQueries({ queryKey: ['carrito'] });
+            set({
+                user: user,
+                access_token: data.access,
+                refresh_token: data.refresh,
+                authStatus: 'authenticated'
             });
             return true;
 
@@ -80,13 +74,15 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     logout: () => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
+        queryClient.removeQueries({ queryKey: ['carrito'] });
+
         set({ user: null, access_token: null, refresh_token: null, authStatus: 'not-authenticated' });
     },
 
     checkAuthStatus: async () => {
         const token = localStorage.getItem('access_token');
         if (!token) {
-             set({ user: null, access_token: null, refresh_token: null, authStatus: 'not-authenticated' });
+            set({ user: null, access_token: null, refresh_token: null, authStatus: 'not-authenticated' });
             return false;
         }
 

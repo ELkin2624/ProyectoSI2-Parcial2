@@ -1,19 +1,18 @@
 import { Button } from '@/components/ui/button'
-import { Filter, Grid, List } from 'lucide-react';
+import { Grid, List } from 'lucide-react';
 import { ProductCard } from './ProductCard';
-import { FilterSidebar } from './FilterSidebar';
 import { Link, useSearchParams } from 'react-router';
-import { useState } from 'react';
-import type { Product } from '@/interfaces/product.interface';
+import type { Productos } from '@/interfaces/productos.interface';
+
 
 interface Props {
-    products: Product[];
+    products: Productos[];
 }
 
-export const ProductsGrid = ({ products }: Props) => {
+export const ProductsGrid = ({ products: productos }: Props) => {
 
-    const [showFilters, setShowFilters] = useState(false)
 
+    // const [showFilters, setShowFilters] = useState(false)
 
     const [searchParams, setSearchParams] = useSearchParams();
 
@@ -24,6 +23,8 @@ export const ProductsGrid = ({ products }: Props) => {
         setSearchParams(searchParams);
     }
 
+    const query = searchParams.get('query') || undefined;
+
 
     return (
         <>
@@ -32,19 +33,10 @@ export const ProductsGrid = ({ products }: Props) => {
                     <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center space-x-4">
                             <h2 className="text-3xl font-light">Productos</h2>
-                            <span className="text-muted-foreground">({products.length} productos)</span>
+                            <span className="text-muted-foreground">({productos.length} productos)</span>
                         </div>
 
                         <div className="flex items-center space-x-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowFilters(!showFilters)}
-                                className="lg:hidden"
-                            >
-                                <Filter className="h-4 w-4 mr-2" />
-                                Filtros
-                            </Button>
 
                             <div className="hidden md:flex border rounded-md">
                                 <Button
@@ -68,27 +60,6 @@ export const ProductsGrid = ({ products }: Props) => {
                     </div>
 
                     <div className="flex gap-8">
-                        {/* Filters Sidebar - Desktop */}
-                        <div className="hidden lg:block">
-                            <FilterSidebar />
-                        </div>
-
-                        {/* Mobile Filters */}
-                        {showFilters && (
-                            <div className="fixed inset-0 z-50 bg-background p-4 lg:hidden">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h3 className="text-lg font-semibold">Filtros</h3>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setShowFilters(false)}
-                                    >
-                                        Cerrar
-                                    </Button>
-                                </div>
-                                <FilterSidebar />
-                            </div>
-                        )}
 
                         {/* Products Grid */}
                         <div className="flex-1">
@@ -100,20 +71,55 @@ export const ProductsGrid = ({ products }: Props) => {
                                 }
                             >
 
+                                {query ?
+                                    productos.map((product) => {
 
-                                {products.map((product) => (
-                                    <Link to={`/product/${product.id}`} key={product.id}>
-                                        <ProductCard
-                                            key={product.id}
-                                            id={product.id}
-                                            name={product.title}
-                                            price={product.price}
-                                            image={product.images[1]}
-                                            category={product.gender}
-                                            sizes={product.sizes}
-                                        />
-                                    </Link>
-                                ))}
+                                        const lowerName = product.nombre.toLowerCase();
+                                        const lowerQuery = query.toLowerCase();
+
+                                        // Obtener la imagen principal o la primera disponible
+                                        const imagenPrincipal = product.imagenes_galeria?.find((img: any) => img.es_principal)
+                                            || product.imagenes_galeria?.[0];
+                                        const imageUrl = imagenPrincipal?.imagen_url || imagenPrincipal?.imagen || '/placeholder.svg';
+
+                                        if (lowerName.includes(lowerQuery))
+                                            return (
+                                                <Link to={`/product/${product.slug}`} key={product.id}>
+                                                    <ProductCard
+                                                        key={product.id}
+                                                        id={product.id.toString()}
+                                                        name={product.nombre}
+                                                        image={imageUrl}
+                                                        category={product.categoria.nombre}
+                                                    // sizes={ product.}
+                                                    />
+                                                </Link>
+                                            );
+
+                                        return;
+                                    }
+                                    )
+                                    :
+                                    productos.map((product) => {
+                                        // Obtener la imagen principal o la primera disponible
+                                        const imagenPrincipal = product.imagenes_galeria?.find((img: any) => img.es_principal)
+                                            || product.imagenes_galeria?.[0];
+                                        const imageUrl = imagenPrincipal?.imagen_url || imagenPrincipal?.imagen || '/placeholder.svg';
+
+                                        return (
+                                            <Link to={`/product/${product.slug}`} key={product.id}>
+                                                <ProductCard
+                                                    key={product.id}
+                                                    id={product.id.toString()}
+                                                    name={product.nombre}
+                                                    image={imageUrl}
+                                                    category={product.categoria.nombre}
+                                                // sizes={ product.}
+                                                />
+                                            </Link>
+                                        );
+                                    })
+                                }
 
                             </div>
 

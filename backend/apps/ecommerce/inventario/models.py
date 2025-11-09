@@ -7,6 +7,8 @@ class Almacen(models.Model):
     nombre = models.CharField(max_length=100, unique=True, 
                               help_text="Ej: Tienda Principal, Bodega Online")
     direccion = models.TextField(blank=True)
+    capacidad = models.PositiveIntegerField(default=0, 
+                                           help_text="Capacidad en m³ o unidades")
     activo = models.BooleanField(default=True)
 
     class Meta:

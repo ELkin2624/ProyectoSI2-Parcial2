@@ -1,9 +1,10 @@
 import { boutiqueApi } from "@/api/BoutiqueApi"
-import type { ProductsResponse } from "@/interfaces/products.reponse";
+import type { ProductosResponse } from "@/interfaces/productos.reponse.interface";
+
 
 interface Options {
-    limit?: number | string;
-    offset?: number | string;
+    page?: number;
+    page_size?: number;
     sizes?: string;
     gender?: string;
     minPrice?: number;
@@ -12,14 +13,16 @@ interface Options {
 }
 
 
-export const getProductsAction = async (options: Options): Promise<ProductsResponse> => {
+export const getProductsAction = async (options: Options): Promise<ProductosResponse> => {
 
-    const { limit, offset, sizes, gender, maxPrice, minPrice, query } = options;
+    const { page, page_size, sizes, gender, maxPrice, minPrice, query } = options;
 
-    const { data } = await boutiqueApi.get<ProductsResponse>('/products/', {
+
+
+    const { data } = await boutiqueApi.get<ProductosResponse>('/productos/productos/', {
         params: {
-            limit,
-            offset,
+            page,                  // Número de página (1, 2, 3...)
+            page_size,             // Cantidad de items por página
             sizes,
             gender,
             minPrice,
@@ -28,19 +31,7 @@ export const getProductsAction = async (options: Options): Promise<ProductsRespo
         }
     });
 
-    console.log(data)
 
-
-    const productsWithImageUrl = data.products.map(product => ({
-        ...product,
-        images: product.images.map(
-            image => `${import.meta.env.VITE_API_URL}/files/product/${image}`
-        )
-    }));
-
-    return {
-        ...data,
-        products: productsWithImageUrl
-    };
+    return data
 
 }

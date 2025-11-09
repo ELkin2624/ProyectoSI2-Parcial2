@@ -1,18 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { Size } from "@/interfaces/product.interface";
-import { Link } from "react-router";
+
 
 interface ProductCardProps {
     id: string;
     name: string;
-    price: number;
     image: string;
     category: string;
-    sizes: Size[];
 }
 
-export const ProductCard = ({ name, price, image, category, sizes }: ProductCardProps) => {
+export const ProductCard = ({ name, category, id, image }: ProductCardProps) => {
     return (
         <Card className="group border-0 shadow-none product-card-hover cursor-pointer">
             <CardContent className="p-0">
@@ -32,12 +29,11 @@ export const ProductCard = ({ name, price, image, category, sizes }: ProductCard
                     <div className="space-y-1">
                         <h3 className="font-medium text-sm tracking-tight">{name}</h3>
                         <p className="text-xs text-muted-foreground uppercase">
-                            {category} - <span className="font-bold">{sizes.join(', ')}</span>
+                            {category}
                         </p>
                     </div>
 
                     <div className="flex items-center justify-between">
-                        <p className="font-semibold text-lg">${price}</p>
                         <Button
                             size="sm"
                             variant="outline"

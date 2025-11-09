@@ -4,6 +4,10 @@ import Chart from "@/admin/components/Chart";
 import QuickActions from "@/admin/components/QuickActions";
 import StatCard from "@/admin/components/StatCard";
 import { Users, DollarSign, ShoppingCart, TrendingUp, BarChart3, Eye } from "lucide-react";
+import { ProductsGrid } from "@/shop/components/ProductsGrid";
+import { CustomPagination } from "@/components/custom/CustomPagination";
+import { useProducts } from "@/shop/hooks/useProducts";
+import { useSearchParams } from "react-router";
 
 
 const stats = [
@@ -55,6 +59,15 @@ const performanceData = [
 ];
 
 export const DashboardPage = () => {
+
+    const { data } = useProducts() || {};
+    const [searchParams] = useSearchParams();
+
+    // Obtener el page_size actual (por defecto 12 según el backend)
+    const pageSize = Number(searchParams.get('page_size')) || 12;
+
+    // Calcular el total de páginas: count / page_size redondeado hacia arriba
+    const totalPages = data?.count ? Math.ceil(data.count / pageSize) : 0;
 
     return (
         <>
@@ -137,6 +150,16 @@ export const DashboardPage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Productos Section */}
+            <div className="mt-8">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-6">Productos Disponibles</h2>
+                <ProductsGrid products={data?.results || []} />
+                <div className="mt-6">
+                    <CustomPagination totalPages={totalPages} />
+                </div>
+            </div>
         </>
     )
 }
+

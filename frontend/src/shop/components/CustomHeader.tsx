@@ -1,20 +1,25 @@
-import { Search, ShoppingBag } from "lucide-react";
+import { Search, ShoppingBag, CreditCard, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useRef, useState, type KeyboardEvent } from "react";
-import { Link, useParams, useSearchParams } from "react-router";
+import { useRef, type KeyboardEvent } from "react";
+import { Link, useParams, useSearchParams, useLocation } from "react-router";
 import { cn } from "@/lib/utils";
 import { CustomLogo } from "@/components/custom/CustomLogo";
 import { useAuthStore } from "@/auth/store/auth.store";
+import { useCart } from "../hooks/useCart";
 
 
 const Header = () => {
-    const [cartCount] = useState(3);
+
+
+    const { data } = useCart();
+    const cartCount = data?.items.length || 0;
 
     const { authStatus, isAdmin, logout } = useAuthStore();
 
     const [searchParams, setSearchParams] = useSearchParams();
     const { gender } = useParams();
+    const location = useLocation();
 
 
 
@@ -49,35 +54,35 @@ const Header = () => {
                     <Link
                         to="/"
                         className={cn(`text-sm font-medium transition-colors hover:text-primary`,
-                            !gender ? 'underline underline-offset-4' : ''
+                            location.pathname === '/' ? 'underline underline-offset-4' : ''
                         )}
                     >
                         Productos
                     </Link>
-                    <Link
-                        to="/gender/men"
-                        className={cn(`text-sm font-medium transition-colors hover:text-primary`,
-                            gender === 'men' ? 'underline underline-offset-4' : ''
-                        )}
-                    >
-                        Hombres
-                    </Link>
-                    <Link
-                        to="/gender/women"
-                        className={cn(`text-sm font-medium transition-colors hover:text-primary`,
-                            gender === 'women' ? 'underline underline-offset-4' : ''
-                        )}
-                    >
-                        Mujeres
-                    </Link>
-                    <Link
-                        to="/gender/kid"
-                        className={cn(`text-sm font-medium transition-colors hover:text-primary`,
-                            gender === 'kid' ? 'underline underline-offset-4' : ''
-                        )}
-                    >
-                        niños
-                    </Link>
+
+                    {/* Solo mostrar si está autenticado */}
+                    {authStatus === 'authenticated' && (
+                        <>
+                            <Link
+                                to="/my-addresses"
+                                className={cn(`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1`,
+                                    location.pathname === '/my-addresses' ? 'underline underline-offset-4' : ''
+                                )}
+                            >
+                                <MapPin className="h-4 w-4" />
+                                Mis Direcciones
+                            </Link>
+                            <Link
+                                to="/my-payments"
+                                className={cn(`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1`,
+                                    location.pathname === '/my-payments' ? 'underline underline-offset-4' : ''
+                                )}
+                            >
+                                <CreditCard className="h-4 w-4" />
+                                Mis Pagos
+                            </Link>
+                        </>
+                    )}
                 </nav>
 
                 {/* Search and Cart */}

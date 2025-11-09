@@ -18,6 +18,14 @@ urlpatterns = [
     # PATCH /api/pagos/{id}/upload-qr/
     # (Sube el comprobante de un pago QR)
     path('<uuid:pk>/upload-qr/', views.QRComprobanteUploadView.as_view(), name='pago-upload-qr'),
+    
+    # POST /api/pagos/confirmar-stripe/
+    # (Confirma un pago de Stripe desde el frontend - para desarrollo)
+    path('confirmar-stripe/', views.ConfirmarPagoStripeView.as_view(), name='confirmar-pago-stripe'),
+    
+    # GET /api/pagos/mis-pagos/
+    # (Lista los pagos del usuario autenticado)
+    path('mis-pagos/', views.MisPagosListView.as_view(), name='mis-pagos'),
 
     # --- Vistas de Admin ---
     # /api/pagos/admin/

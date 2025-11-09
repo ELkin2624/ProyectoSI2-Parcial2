@@ -1,15 +1,18 @@
 
+import { useEffect } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router';
 import { useProduct } from '@/hooks/useProduct';
-import { ProductForm } from './ui/ProductForm';
-import type { Product } from '@/interfaces/product.interface';
+import { ProductFormNew, type ProductFormData } from './ui/ProductFormNew';
+import { VariantesSection } from '@/admin/components/VariantesSection';
+import { AtributosSection } from '@/admin/components/AtributosSection';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 
 
 export const AdminProductPage = () => {
 
-    const { id } = useParams();
+    const { slug } = useParams();
     const navigate = useNavigate();
 
     const {
@@ -17,54 +20,117 @@ export const AdminProductPage = () => {
         isLoading,
         isError,
         mutation
-    } = useProduct(id || '');
+    } = useProduct(slug || '');
 
+    // Debug: Log cuando cambia el producto
+    useEffect(() => {
+        if (product) {
+            console.log('Producto cargado:', {
+                id: product.id,
+                nombre: product.nombre,
+                variantes: product.variantes?.length || 0,
+                atributos: product.atributos?.length || 0
+            });
 
-    const title = id === 'new' ? 'Nuevo producto' : 'Editar producto';
-    const subtitle =
-        id === 'new'
-            ? 'Aquí puedes crear un nuevo producto.'
-            : 'Aquí puedes editar el producto.';
-
-    const handleSubmit = async (productLike: Partial<Product> & { files?: File[] }) => {
-
-        await mutation.mutateAsync(productLike, {
-            onSuccess: (data) => {
-                toast.success('Producto actualizado correctamente', {
-                    position: 'top-right'
-                });
-                navigate(`/admin/products/${data.id}`);
-            },
-            onError: (error) => {
-                console.error(error);
-                toast.error('Error al actualizar el producto');
+            if (product.variantes) {
+                console.log('Variantes detalle:', product.variantes.map(v => ({
+                    id: v.id,
+                    sku: v.sku,
+                    stock_total: v.stock_total,
+                    valores: v.valores.map(val => `${val.atributo.nombre}: ${val.valor}`).join(', ')
+                })));
             }
-        });
+        }
+    }, [product]);
 
 
+    const title = slug === 'new' ? 'Nuevo producto' : 'Editar producto';
+    const subtitle =
+        slug === 'new'
+            ? 'Completa la información básica del producto.'
+            : 'Modifica la información del producto.';
+
+    const handleSubmit = async (formData: ProductFormData) => {
+        try {
+            await mutation.mutateAsync(formData);
+
+            toast.success(
+                slug === 'new' ? 'Producto creado exitosamente' : 'Producto actualizado correctamente',
+                { position: 'top-right' }
+            );
+
+            navigate('/admin/products');
+        } catch (error: any) {
+            console.error('Error completo:', error);
+            console.error('Response data:', error?.response?.data);
+
+            // Extraer mensaje de error más específico
+            let errorMessage = 'Error al guardar el producto';
+
+            if (error?.response?.data) {
+                const errorData = error.response.data;
+
+                // Si hay errores de validación de campos
+                if (typeof errorData === 'object' && !errorData.detail) {
+                    const errors = Object.entries(errorData).map(([key, value]) => {
+                        if (Array.isArray(value)) {
+                            return `${key}: ${value.join(', ')}`;
+                        }
+                        return `${key}: ${value}`;
+                    }).join('\n');
+                    errorMessage = errors || errorMessage;
+                } else if (errorData.detail) {
+                    errorMessage = errorData.detail;
+                } else if (errorData.nombre) {
+                    errorMessage = Array.isArray(errorData.nombre)
+                        ? errorData.nombre.join(', ')
+                        : errorData.nombre;
+                }
+            }
+
+            toast.error(errorMessage, { duration: 5000 });
+        }
     }
 
 
 
 
-    if (isError) {
+    if (isError && slug !== 'new') {
         return <Navigate to={'/admin/products'} />
     }
 
     if (isLoading) {
-        return <h1>Cargando</h1>
+        return (
+            <div className="flex justify-center items-center min-h-[400px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
     }
 
-    if (!product) {
+    if (!product && slug !== 'new') {
         return <Navigate to={'/admin/products'} />
     }
 
-    return <ProductForm
-        title={title}
-        subTitle={subtitle}
-        product={product}
-        onSubmit={handleSubmit}
-        isPending={mutation.isPending}
-    />
+    return (
+        <>
+            <ProductFormNew
+                title={title}
+                subTitle={subtitle}
+                product={product!}
+                onSubmit={handleSubmit}
+                isPending={mutation.isPending}
+            />
+
+            {/* Sección de Atributos - Solo mostrar si el producto ya existe */}
+            {product && product.id !== 0 && (
+                <AtributosSection product={product} />
+            )}
+
+            {/* Sección de Variantes - Solo mostrar si el producto ya existe */}
+            {product && product.id !== 0 && (
+                <VariantesSection product={product} />
+            )}
+        </>
+    );
 
 };

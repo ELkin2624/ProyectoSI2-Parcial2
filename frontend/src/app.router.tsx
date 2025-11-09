@@ -6,7 +6,14 @@ import { RegisterPage } from "./auth/page/register/RegisterPage";
 import { LoginPage } from "./auth/page/login/LoginPage";
 import { ShopLayout } from "./shop/layouts/ShopLayout";
 import { HomePage, ProductPage, GenderPage, CartPage } from "./shop/pages";
+import { MyPaymentsPage } from "./shop/pages/MyPaymentsPage";
+import { CheckoutPage } from "./shop/pages/checkout/CheckoutPage";
+import { MyAddressesPage } from "./shop/pages/addresses/MyAddressesPage";
+import { PaymentPage } from "./shop/pages/payment/PaymentPage";
 import { AdminCustomersPage, AdminProductPage, AdminProductsPage, AdminSalesHistoryPage, AdminSalesPage, DashboardPage } from "./admin/pages";
+import { InventoryPage } from "./admin/pages/InventoryPage";
+import OrdersPage from "./admin/pages/OrdersPage";
+import AdminPaymentsPage from "./admin/pages/AdminPaymentsPage";
 import { NotAuthenticatedRoute, AdminRoute } from "./components/routes/ProtectedRoutes";
 
 
@@ -34,6 +41,22 @@ export const appRouter = createBrowserRouter([
             {
                 path: 'cart',
                 element: <CartPage />
+            },
+            {
+                path: 'checkout',
+                element: <CheckoutPage />
+            },
+            {
+                path: 'my-addresses',
+                element: <MyAddressesPage />
+            },
+            {
+                path: 'pedido/:pedidoId/pago',
+                element: <PaymentPage />
+            },
+            {
+                path: 'my-payments',
+                element: <MyPaymentsPage />
             }
         ]
     },
@@ -78,8 +101,20 @@ export const appRouter = createBrowserRouter([
                 element: <AdminProductsPage />
             },
             {
-                path: 'products/:id',
+                path: 'products/:slug',
                 element: <AdminProductPage />
+            },
+            {
+                path: 'inventory',
+                element: <InventoryPage />
+            },
+            {
+                path: 'orders',
+                element: <OrdersPage />
+            },
+            {
+                path: 'payments',
+                element: <AdminPaymentsPage />
             },
             {
                 path: 'users',

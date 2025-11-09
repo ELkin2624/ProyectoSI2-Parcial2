@@ -4,11 +4,13 @@ import type { AuthResponse } from "../interfaces/auth.response";
 
 export const loginAction = async (email: string, password: string): Promise<AuthResponse> => {
     try {
-        const { data } = await boutiqueApi.post<AuthResponse>('/api/token/', {
+        const { data } = await boutiqueApi.post<AuthResponse>('/token/', {
             email,
             password
         })
+        console.log({ data })
         return data;
+
 
     } catch (error) {
         console.error('Error en loginAction: ', error);

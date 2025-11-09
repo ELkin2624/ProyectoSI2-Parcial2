@@ -4,7 +4,7 @@ import type { User } from "@/interfaces/user.interface";
 
 export const checkAuthAction = async (): Promise<User> => {
     try {
-        const { data } = await boutiqueApi.get<User>('/api/usuarios/me/');
+        const { data } = await boutiqueApi.get<User>('/usuarios/me/');
         return data;
     } catch (error) {
         console.log('Error en checkAuthAction:', error)

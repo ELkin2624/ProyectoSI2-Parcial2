@@ -4,7 +4,9 @@ import { ShoppingCart, ChevronLeft, ChevronRight } from "lucide-react"
 import { useParams } from "react-router"
 
 import { useProduct } from "@/hooks/useProduct"
-
+import { obtenerColores, obtenerInfoPrecioVariante, obtenerTallas } from "@/lib/ObtenerVariantes"
+import { useCart } from "@/shop/hooks/useCart"
+import { toast } from "sonner"
 
 
 export const ProductPage = () => {
@@ -15,39 +17,103 @@ export const ProductPage = () => {
 
 
   const { data: product } = useProduct(idSlug as string);
+  const { addItemMutation } = useCart();
 
 
-
+  const [selectedColor, setSelectedColor] = useState('');
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [isAdding, setIsAdding] = useState(false)
 
-  // TODO: quitar este state
-
 
   if (!product) {
     return <div className="container mx-auto text-center py-20">Producto no encontrado</div>;
   }
+  const tallas = obtenerTallas(product);
+  const colores = obtenerColores(product);
+
+  // Crear objeto de selección solo con valores no vacíos
+  const seleccion: { [key: string]: string } = {};
+  if (selectedSize) seleccion.Talla = selectedSize;
+  if (selectedColor) seleccion.Color = selectedColor;
+
+  const infoPrecio = obtenerInfoPrecioVariante(product, seleccion)
+  // TODO: quitar este state
+
+
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % product.images.length)
+    setCurrentImageIndex((prev) => (prev + 1) % product.imagenes_galeria.length)
   }
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length)
+    setCurrentImageIndex((prev) => (prev - 1 + product.imagenes_galeria.length) % product.imagenes_galeria.length)
   }
 
   const handleAddToCart = () => {
-    if (!selectedSize) return
+    if (!selectedSize) {
+      toast.error('Por favor selecciona una talla');
+      return;
+    }
 
-    setIsAdding(true)
+    if (!infoPrecio?.variante_id) {
+      toast.error('Variante no disponible');
+      return;
+    }
 
-    setTimeout(() => {
-      setIsAdding(false)
-      setQuantity(1)
-      // openCart()
-    }, 500)
+    // Verificar que la variante tenga stock
+    const varianteSeleccionada = product.variantes?.find(v => v.id === infoPrecio.variante_id);
+    if (!varianteSeleccionada) {
+      toast.error('Variante no encontrada');
+      return;
+    }
+
+    if (varianteSeleccionada.stock_total <= 0) {
+      toast.error('Esta variante no tiene stock disponible');
+      return;
+    }
+
+    if (quantity > varianteSeleccionada.stock_total) {
+      toast.error(`Solo hay ${varianteSeleccionada.stock_total} unidades disponibles`);
+      return;
+    }
+
+    setIsAdding(true);
+
+    addItemMutation.mutate(
+      {
+        variante_id: infoPrecio.variante_id,
+        cantidad: quantity
+      },
+      {
+        onSuccess: () => {
+          toast.success('Producto agregado al carrito');
+          setIsAdding(false);
+        },
+        onError: (error: any) => {
+          console.error('Error completo:', error);
+          console.error('Response data:', error?.response?.data);
+          console.error('Response status:', error?.response?.status);
+          console.error('Response headers:', error?.response?.headers);
+
+          const errorData = error?.response?.data;
+          let errorMessage = 'Error al agregar al carrito';
+
+          if (errorData) {
+            console.log('Estructura del error:', Object.keys(errorData));
+            errorMessage = errorData.detail
+              || errorData.non_field_errors?.[0]
+              || errorData.variante_id?.[0]
+              || JSON.stringify(errorData)
+              || error?.message;
+          }
+
+          toast.error(errorMessage);
+          setIsAdding(false);
+        }
+      }
+    );
   }
 
   return (
@@ -62,8 +128,8 @@ export const ProductPage = () => {
             <div className="space-y-4">
               <div className="relative aspect-3/4 bg-muted overflow-hidden group">
                 <img
-                  src={product.images[currentImageIndex] || "/placeholder.svg"}
-                  alt={product.title}
+                  src={product.imagenes_galeria[currentImageIndex]?.imagen_url || product.imagenes_galeria[currentImageIndex]?.imagen || "/placeholder.svg"}
+                  alt={product.nombre}
                   className="object-cover"
                 />
                 <button
@@ -84,7 +150,7 @@ export const ProductPage = () => {
 
               {/* Thumbnail Navigation */}
               <div className="grid grid-cols-4 gap-4">
-                {product.images.map((image, index) => (
+                {product.imagenes_galeria.map((image: any, index: number) => (
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
@@ -94,8 +160,8 @@ export const ProductPage = () => {
                       }`}
                   >
                     <img
-                      src={image || "/placeholder.svg"}
-                      alt={`${product.title} view ${index + 1}`}
+                      src={image?.imagen_url || image?.imagen || "/placeholder.svg"}
+                      alt={`${product.nombre} view ${index + 1}`}
                       className="object-cover"
                     />
                   </button>
@@ -107,28 +173,28 @@ export const ProductPage = () => {
             <div className="flex flex-col">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-balance">{product.title}</h2>
-                  <p className="mt-4 text-3xl font-light text-foreground">${product.price.toFixed(2)}</p>
+                  <h2 className="text-4xl lg:text-5xl font-light tracking-tight text-balance">{product.nombre}</h2>
+                  {/* <p className="mt-4 text-3xl font-light text-foreground">${product.price.toFixed(2)}</p> */}
                 </div>
 
-                <p className="text-base leading-relaxed text-muted-foreground">{product.description}</p>
+                <p className="text-base leading-relaxed text-muted-foreground">{product.descripcion}</p>
 
                 {/* Color Selection */}
-                {/* <div className="space-y-3">
+                <div className="space-y-3">
                   <label className="text-sm font-light tracking-wide uppercase text-foreground">
                     Color: {selectedColor}
                   </label>
                   <div className="flex gap-3">
-                    {product.colors.map((color) => (
+                    {colores.map((color) => (
                       <button
-                        key={color.name}
-                        onClick={() => setSelectedColor(color.name)}
-                        className={`h-12 w-12 rounded-full border-2 transition-all ${selectedColor === color.name
+                        key={color.id}
+                        onClick={() => setSelectedColor(color.valor)}
+                        className={`h-12 w-12 rounded-full border-2 transition-all ${selectedColor === color.valor
                           ? "border-foreground scale-110"
                           : "border-border hover:border-muted-foreground"
                           }`}
                         style={{ backgroundColor: color.hex }}
-                        aria-label={`Select ${color.name}`}
+                        aria-label={`Select ${color.valor}`}
                       >
                         {color.hex === "#FFFFFF" && (
                           <span className="block h-full w-full rounded-full border border-border" />
@@ -136,26 +202,69 @@ export const ProductPage = () => {
                       </button>
                     ))}
                   </div>
-                </div> */}
+                </div>
 
                 {/* Size Selection */}
                 <div className="space-y-3">
                   <label className="text-sm font-light tracking-wide uppercase text-foreground">Talla</label>
                   <div className="grid grid-cols-5 gap-3">
-                    {product.sizes.map((size) => (
+                    {tallas.map((size) => (
                       <button
-                        key={size}
-                        onClick={() => setSelectedSize(size)}
-                        className={`py-3 text-sm font-light tracking-wide border transition-all ${selectedSize === size
+                        key={size.id}
+                        onClick={() => setSelectedSize(size.valor)}
+                        className={`py-3 text-sm font-light tracking-wide border transition-all ${selectedSize === size.valor
                           ? "bg-foreground text-background border-foreground"
                           : "bg-background text-foreground border-border hover:border-foreground"
                           }`}
                       >
-                        {size}
+                        {size.valor}
                       </button>
+
                     ))}
                   </div>
                 </div>
+
+                {/* Size Selection */}
+                {
+                  infoPrecio
+                    ?
+                    <div className="space-y-3">
+                      <label className="text-sm font-light tracking-wide uppercase text-foreground">Precio: </label>
+                      <span>{(Number(infoPrecio.precio) * quantity).toFixed(2)}</span>
+                    </div>
+                    : ''
+                }
+
+                {/* Stock Disponible */}
+                {infoPrecio?.variante_id && (() => {
+                  const varianteSeleccionada = product.variantes?.find(v => v.id === infoPrecio.variante_id);
+                  const stockDisponible = varianteSeleccionada?.stock_total || 0;
+
+                  return (
+                    <div className="space-y-2">
+                      <label className="text-sm font-light tracking-wide uppercase text-foreground">
+                        Stock Disponible
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {stockDisponible > 0 ? (
+                          <>
+                            <span className="inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                            <span className="text-sm text-green-600 font-medium">
+                              {stockDisponible} {stockDisponible === 1 ? 'unidad' : 'unidades'} disponibles
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                            <span className="text-sm text-red-600 font-medium">
+                              Sin stock
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Quantity */}
                 <div className="space-y-3">
@@ -169,7 +278,15 @@ export const ProductPage = () => {
                     </button>
                     <span className="text-lg font-light w-8 text-center">{quantity}</span>
                     <button
-                      onClick={() => setQuantity(quantity + 1)}
+                      onClick={() => {
+                        const varianteSeleccionada = infoPrecio?.variante_id
+                          ? product.variantes?.find(v => v.id === infoPrecio.variante_id)
+                          : null;
+                        const maxStock = varianteSeleccionada?.stock_total || 0;
+                        if (quantity < maxStock) {
+                          setQuantity(quantity + 1);
+                        }
+                      }}
                       className="h-10 w-10 border border-border hover:border-foreground transition-colors"
                     >
                       +
@@ -181,22 +298,47 @@ export const ProductPage = () => {
                 <Button
                   size="lg"
                   className="w-full h-14 text-base font-light tracking-wide uppercase"
-                  disabled={!selectedSize || isAdding}
+                  disabled={(infoPrecio ? false : true) || isAdding || (() => {
+                    const varianteSeleccionada = infoPrecio?.variante_id
+                      ? product.variantes?.find(v => v.id === infoPrecio.variante_id)
+                      : null;
+                    return (varianteSeleccionada?.stock_total || 0) <= 0;
+                  })()}
                   onClick={handleAddToCart}
                 >
                   <ShoppingCart className="mr-2 h-5 w-5" />
-                  {isAdding ? "Agregado ✓" : "Agregar al Carrito"}
+                  {isAdding ? "Agregando...." : "Agregar al Carrito"}
                 </Button>
 
                 {!selectedSize && (
                   <p className="text-sm text-muted-foreground text-center">Por favor selecciona una talla</p>
                 )}
 
+                {infoPrecio?.variante_id && (() => {
+                  const varianteSeleccionada = product.variantes?.find(v => v.id === infoPrecio.variante_id);
+                  const stockDisponible = varianteSeleccionada?.stock_total || 0;
+
+                  if (stockDisponible <= 0) {
+                    return (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800 text-center">
+                          <strong>Lo sentimos.</strong> Esta variante no tiene stock disponible en este momento.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {!infoPrecio && (
+                  <p className="text-sm text-muted-foreground text-center">Stock no disponible</p>
+                )}
+
                 {/* Product Details */}
                 <div className="pt-8 border-t border-border space-y-3">
                   <h3 className="text-sm font-light tracking-wide uppercase text-foreground">Detalles del Producto</h3>
                   <h4>
-                    {product.description}
+                    {product.descripcion}
                   </h4>
                 </div>
 

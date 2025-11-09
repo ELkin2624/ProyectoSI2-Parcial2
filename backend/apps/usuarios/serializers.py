@@ -28,7 +28,7 @@ class AddressSerializer(serializers.ModelSerializer):
         )
         # Hacemos 'user' de solo lectura, porque lo asignaremos 
         # automáticamente desde el 'request.user' en la vista.
-        read_only_fields = ('created_at', 'updated_at')
+        read_only_fields = ('id', 'user', 'created_at', 'updated_at')
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -116,6 +116,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
     profile = ProfileSerializer(read_only=True)
     addresses = AddressSerializer(many=True, read_only=True)
     groups = GroupSerializer(many=True, read_only=True)
+    
+    # Campo calculado para verificar si es admin
+    is_admin = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -128,11 +131,18 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'profile',      # JSON del perfil
             'addresses',    # Lista de JSON de direcciones
             'groups',       # Lista de grupos del usuario
+            'is_admin',     # Boolean: True si es admin
             'is_active',
             'date_joined',
         )
         # Campos que un usuario no puede editar de sí mismo
         read_only_fields = ('is_active', 'date_joined', 'email')
+
+    def get_is_admin(self, obj):
+        """
+        Retorna True si el usuario pertenece al grupo 'admin' o es staff.
+        """
+        return obj.groups.filter(name='admin').exists() or obj.is_staff
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
