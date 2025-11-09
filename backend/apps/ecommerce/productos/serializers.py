@@ -72,7 +72,7 @@ class ImagenProductoSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ImagenProducto
-        fields = ('id', 'imagen', 'imagen_url', 'alt_text', 'es_principal')
+        fields = ('id', 'producto', 'imagen', 'imagen_url', 'alt_text', 'es_principal')
         read_only_fields = ('id', 'imagen_url')
 
     def get_imagen_url(self, obj):
@@ -105,11 +105,19 @@ class ProductoVarianteSerializer(serializers.ModelSerializer):
         write_only=True,
         label="IDs de Valores de Atributo"
     )
+    
+    stock_inicial = serializers.IntegerField(
+        write_only=True,
+        required=False,
+        min_value=0,
+        help_text="Stock inicial para el almacén principal al crear la variante"
+    )
 
     class Meta:
         model = ProductoVariante
         fields = (
-            'id', 
+            'id',
+            'producto',             # ID del producto padre
             'sku', 
             'precio', 
             'precio_oferta', 
@@ -120,6 +128,7 @@ class ProductoVarianteSerializer(serializers.ModelSerializer):
             'imagen_variante_url',  # URL de solo lectura
             'valores',              # Lista de objetos (Talla: M, Color: Azul)
             'valores_ids',          # Lista de IDs [1, 5] para escritura
+            'stock_inicial',        # Stock inicial (solo para creación)
         )
         read_only_fields = ('id', 'sku', 'stock_total', 'stock_records', 'imagen_variante_url')
         
@@ -127,6 +136,32 @@ class ProductoVarianteSerializer(serializers.ModelSerializer):
         if obj.imagen_variante and hasattr(obj.imagen_variante, 'url'):
             return obj.imagen_variante.url
         return None
+    
+    def create(self, validated_data):
+        from ..inventario.models import Stock, Almacen
+        
+        # Extraer stock_inicial si existe
+        stock_inicial = validated_data.pop('stock_inicial', None)
+        
+        # Crear la variante
+        variante = super().create(validated_data)
+        
+        # Si se especificó stock inicial, crear el registro de stock
+        if stock_inicial is not None and stock_inicial > 0:
+            # Obtener o crear el almacén principal
+            almacen, _ = Almacen.objects.get_or_create(
+                nombre='Principal',
+                defaults={'activo': True}
+            )
+            
+            # Crear el registro de stock
+            Stock.objects.create(
+                variante=variante,
+                almacen=almacen,
+                cantidad=stock_inicial
+            )
+        
+        return variante
 
 class ProductoSerializer(serializers.ModelSerializer):
     """

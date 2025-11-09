@@ -103,6 +103,11 @@ class Producto(models.Model):
         verbose_name = "Producto"
         verbose_name_plural = "Productos"
         ordering = ('-creado_en',)
+        indexes = [
+            models.Index(fields=['activo', '-creado_en']),
+            models.Index(fields=['categoria', 'activo']),
+            models.Index(fields=['slug']),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -139,6 +144,11 @@ class ProductoVariante(models.Model):
     class Meta:
         verbose_name = "Variante de Producto"
         verbose_name_plural = "Variantes de Producto"
+        indexes = [
+            models.Index(fields=['producto', 'activo']),
+            models.Index(fields=['sku']),
+            models.Index(fields=['activo']),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.sku:
@@ -178,3 +188,6 @@ class ImagenProducto(models.Model):
         verbose_name = "Imagen de Producto"
         verbose_name_plural = "Imágenes de Producto"
         ordering = ['-es_principal'] # La principal primero
+        indexes = [
+            models.Index(fields=['producto', '-es_principal']),
+        ]

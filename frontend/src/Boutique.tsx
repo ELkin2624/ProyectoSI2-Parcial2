@@ -6,8 +6,18 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'sonner'
 import type { PropsWithChildren } from "react"
 import { useAuthStore } from "./auth/store/auth.store"
+// import { queryClient } from "./lib/query-client"
 
-const queryClient = new QueryClient();
+
+export const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 1,
+            refetchOnWindowFocus: false,
+            staleTime: 1000 * 60 * 5, // 5 minutos
+        },
+    },
+});
 
 const ChechAuthProvider = ({ children }: PropsWithChildren) => {
 

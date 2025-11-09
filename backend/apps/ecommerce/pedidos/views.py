@@ -1,11 +1,13 @@
 from django.db import transaction # ¡Para transacciones atómicas!
+from django.db.models import F  # Para actualizaciones atómicas
 from rest_framework import viewsets, generics, permissions, status
 from rest_framework.response import Response
 from .models import Pedido, ItemPedido, DireccionPedido
 from .serializers import (
     PedidoSerializer, 
     PedidoCreateSerializer, 
-    PedidoUpdateSerializer
+    PedidoUpdateSerializer,
+    AdminPedidoSerializer
 )
 from apps.ecommerce.carritos.views import get_or_create_cart
 from apps.ecommerce.carritos.models import ItemCarrito
@@ -142,10 +144,10 @@ class AdminPedidoViewSet(viewsets.ModelViewSet):
     """
     (ADMIN) ViewSet para gestionar TODOS los pedidos.
     """
-    queryset = Pedido.objects.all()
+    queryset = Pedido.objects.all().select_related('usuario').prefetch_related('items__variante__producto', 'pagos')
     permission_classes = [permissions.IsAdminUser]
     
     def get_serializer_class(self):
         if self.action in ['update', 'partial_update']:
             return PedidoUpdateSerializer
-        return PedidoSerializer
+        return AdminPedidoSerializer

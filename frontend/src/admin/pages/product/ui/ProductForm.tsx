@@ -6,7 +6,7 @@ import { AdminTitle } from "@/admin/components/AdminTitle";
 
 
 import { Button } from "@/components/ui/button";
-import type { Product, Size } from "@/interfaces/product.interface";
+import type { Product, Size } from "@/interfaces/productos.interface";
 import { X, SaveAll, Upload, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 

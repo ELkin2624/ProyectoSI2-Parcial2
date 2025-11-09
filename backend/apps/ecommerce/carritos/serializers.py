@@ -89,20 +89,32 @@ class AddItemCarritoSerializer(serializers.ModelSerializer):
         source='variante',
         write_only=True,
         label="ID de la Variante"
+        # required por defecto es True para creaciones, None para actualizaciones
     )
 
     class Meta:
         model = ItemCarrito
         fields = ('variante_id', 'cantidad')
+        # Deshabilitamos los validadores por defecto (unique_together)
+        # porque el ViewSet maneja la lógica de get_or_create
+        validators = []
     
     def validate(self, attrs):
-        # Validamos el stock ANTES de añadir al carrito
-        variante = attrs['variante']
-        cantidad = attrs['cantidad']
+        # Para actualizaciones, la variante puede venir del attrs o de la instancia
+        variante = attrs.get('variante')
+        if not variante and self.instance:
+            variante = self.instance.variante
+            
+        cantidad = attrs.get('cantidad')
+        
+        if not variante:
+            raise serializers.ValidationError({"variante_id": "Se requiere una variante"})
+        
+        # Validamos el stock ANTES de añadir/actualizar al carrito
         stock_total = variante.stock_total
         
         if cantidad > stock_total:
-            raise serializers.ValidationError(
-                f"No hay suficiente stock. Disponible: {stock_total}, Solicitado: {cantidad}"
-            )
+            raise serializers.ValidationError({
+                "cantidad": f"No hay suficiente stock. Disponible: {stock_total}, Solicitado: {cantidad}"
+            })
         return attrs
