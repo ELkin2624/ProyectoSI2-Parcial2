@@ -230,12 +230,22 @@ def convert_df_to_excel_bytes(df: pd.DataFrame, metric_name: str) -> bytes:
     """
     Toma un DataFrame y lo convierte en los bytes de un archivo Excel.
     """
+    # Excel no soporta timezones. Debemos quitarlos de cualquier columna de fecha.
+    # Iteramos por todas las columnas del DataFrame
+    for col in df.columns:
+        # Verificamos si la columna es de tipo datetime Y si tiene timezone (tz-aware)
+        if pd.api.types.is_datetime64_any_dtype(df[col]) and df[col].dt.tz is not None:
+            print(f"Eliminando timezone de la columna: {col}")
+            # .dt.tz_localize(None) es la forma de "quitar" el timezone en Pandas
+            # Esto convierte '2025-11-09 10:30:00-04:00' en '2025-11-09 10:30:00'
+            df[col] = df[col].dt.tz_localize(None)
+    # --- FIN DEL ARREGLO ---
+
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name=metric_name)
         if metric_name == 'ventas_totales':
             try:
-                # Asegurarse de que la columna existe y no está vacía
                 if 'total_pedido' in df.columns and not df.empty:
                     total = df['total_pedido'].sum()
                     resumen_df = pd.DataFrame({'Total General': [total]})
