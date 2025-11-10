@@ -4,14 +4,12 @@ from sqlalchemy import create_engine, text
 from .core.config import DATABASE_URL
 from fastapi import HTTPException
 
-# 1. Creamos el "motor" de conexión a la BD.
 try:
     engine = create_engine(DATABASE_URL)
     print("Conexión a la base de datos PostgreSQL establecida exitosamente.")
 except Exception as e:
     print(f"Error al conectar a la base de datos: {e}")
     engine = None
-
 
 # --- Funciones de Métricas Específicas ---
 # Cada función privada se encarga de una métrica
@@ -175,28 +173,26 @@ def _get_stock_actual(params: dict, date_range: dict) -> pd.DataFrame:
 
 
 # --- Función Despachadora Principal ---
-def crear_reporte_desde_bd(parametros: dict) -> bytes:
+def get_report_dataframe(parametros: dict) -> pd.DataFrame:
     """
-    Se conecta a la BD, ejecuta una consulta basada en los parámetros
-    y devuelve los bytes de un archivo Excel.
+    Busca la métrica, ejecuta la consulta SQL correcta
+    y devuelve un DataFrame de Pandas con los datos.
     """
     if engine is None:
         raise Exception("El motor de la base de datos no está inicializado.")
 
-    # 1. Extraemos los parámetros de la IA
     metric = parametros.get('metric')
     date_range = parametros.get('date_range')
     
     if not metric:
         raise HTTPException(status_code=400, detail="La IA no pudo determinar una métrica.")
         
-    if not date_range and metric not in ['stock_actual', 'inventario_bajo']:
+    if not date_range and metric not in ['stock_actual', 'inventario_bajo', 'productos_sin_stock']:
         raise HTTPException(status_code=400, detail="La IA no pudo determinar un rango de fechas.")
 
     print(f"Generando reporte para métrica: {metric}")
 
-    df = None # DataFrame de Pandas
-
+    df = None 
     # 2. Despachador: Llama a la función correcta basada en la métrica
     if metric == 'ventas_totales':
         df = _get_ventas_totales(parametros, date_range)
@@ -207,12 +203,10 @@ def crear_reporte_desde_bd(parametros: dict) -> bytes:
     elif metric == 'productos_mas_vendidos':
         df = _get_productos_mas_vendidos(parametros, date_range)
     
-    # ---- Métricas de Estado de Pedido ----
     elif metric == 'pedidos_pendientes':
-        # Tus estados son 'PENDIENTE' y 'EN_VERIFICACION'
         df_pendiente = _get_pedidos_por_estado('PENDIENTE', date_range)
         df_verif = _get_pedidos_por_estado('EN_VERIFICACION', date_range)
-        df = pd.concat([df_pendiente, df_verif]) # Une los dos resultados
+        df = pd.concat([df_pendiente, df_verif])
         
     elif metric == 'pedidos_enviados':
         df = _get_pedidos_por_estado('ENVIADO', date_range)
@@ -220,27 +214,33 @@ def crear_reporte_desde_bd(parametros: dict) -> bytes:
     elif metric == 'pedidos_entregados':
         df = _get_pedidos_por_estado('ENTREGADO', date_range)
     
-    # ---- Métricas de Inventario ----
     elif metric in ['stock_actual', 'inventario_bajo']:
         df = _get_stock_actual(parametros, date_range)
-
-    # ... Aquí puedes añadir 'elif' para todas las otras métricas
-    # que definiste en tu llm_service.py
+    
     else:
-        raise NotImplementedError(f"Métrica '{metric}' reconocida por la IA, pero aún no implementada en reporting.py.")
+        raise NotImplementedError(f"Métrica '{metric}' reconocida, pero aún no implementada en reporting.py.")
 
-    # 3. Creamos el archivo Excel en la MEMORIA
+    if df is None:
+        raise Exception(f"La métrica '{metric}' no produjo datos.")
+
+    return df 
+
+# --- NUEVA Función de Utilidad (convierte df -> Excel) ---
+def convert_df_to_excel_bytes(df: pd.DataFrame, metric_name: str) -> bytes:
+    """
+    Toma un DataFrame y lo convierte en los bytes de un archivo Excel.
+    """
     output = io.BytesIO()
-    
-    # Escribimos el DataFrame de Pandas en este "archivo en memoria"
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name=metric)
-        
-        # (Opcional) Si quieres añadir una hoja de resumen
-        if metric == 'ventas_totales':
-            total = df['total_pedido'].sum()
-            resumen_df = pd.DataFrame({'Total General': [total]})
-            resumen_df.to_excel(writer, index=False, sheet_name='Resumen')
-    
-    excel_data = output.getvalue()
-    return excel_data
+        df.to_excel(writer, index=False, sheet_name=metric_name)
+        if metric_name == 'ventas_totales':
+            try:
+                # Asegurarse de que la columna existe y no está vacía
+                if 'total_pedido' in df.columns and not df.empty:
+                    total = df['total_pedido'].sum()
+                    resumen_df = pd.DataFrame({'Total General': [total]})
+                    resumen_df.to_excel(writer, index=False, sheet_name='Resumen')
+            except KeyError:
+                pass 
+
+    return output.getvalue()

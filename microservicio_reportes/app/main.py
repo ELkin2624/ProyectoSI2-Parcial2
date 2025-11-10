@@ -1,20 +1,18 @@
 from fastapi import FastAPI, HTTPException
 from starlette.responses import StreamingResponse
 import io
+import pandas as pd
 
 from .schemas import ReportRequest
 from .llm_service import analizar_prompt_usuario
-from .reporting import crear_reporte_desde_bd
+from .reporting import get_report_dataframe, convert_df_to_excel_bytes
 
-# Creamos la instancia de la aplicación
 app = FastAPI(
     title="Microservicio de Reportes de IA",
     version="0.1.0",
 )
 
-# Este es un "endpoint" o "ruta"
-# El decorador @app.get("/") le dice a FastAPI
-# que esta función maneja las peticiones a la raíz "/"
+# El decorador @app.get("/") le dice a FastAPI que esta función maneja las peticiones a la raíz "/"
 @app.get("/")
 def leer_raiz():
     """
@@ -22,8 +20,6 @@ def leer_raiz():
     """
     return {"mensaje": "¡Microservicio de Reportes está en línea!"}
 
-
-# Es "POST" porque el usuario nos "envía" datos (el prompt)
 @app.post("/generar-reporte-ia")
 def generar_reporte(request: ReportRequest):
     """
@@ -46,32 +42,36 @@ def generar_reporte(request: ReportRequest):
     formato = parametros.get('format', 'json')
     
     try:
-        # 3. ¡Aquí ocurre la magia!
+        df = get_report_dataframe(parametros)
+
         if formato == 'excel':
-            # Llamamos al trabajador para generar el archivo Excel
-            excel_bytes = crear_reporte_desde_bd(parametros)
+            metric_name = parametros.get('metric', 'reporte')
+            excel_bytes = convert_df_to_excel_bytes(df, metric_name)
             
-            # Devolvemos el archivo Excel
             return StreamingResponse(
                 io.BytesIO(excel_bytes),
                 media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 headers={
-                    "Content-Disposition": "attachment; filename=reporte_generado.xlsx"
+                    "Content-Disposition": f"attachment; filename={metric_name}.xlsx"
                 }
             )
             
         elif formato == 'json':
-            # Si solo querían JSON, devolvemos los parámetros (como antes)
+            # Convertimos el DataFrame a un diccionario
+            df_cleaned = df.replace({pd.NA: None, pd.NaT: None, float('nan'): None})
+            data_json = df_cleaned.to_dict(orient='records')
+
             return {
-                "mensaje": "Parámetros extraídos (formato JSON)",
-                "parametros_extraidos": parametros
+                "metric": parametros.get('metric'),
+                "count": len(data_json),
+                "data": data_json
             }
             
         else:
             raise HTTPException(status_code=400, detail=f"Formato '{formato}' no soportado.")
 
     except NotImplementedError as e:
-        # Error si la métrica no existe (ej. 'productos_mas_vendidos')
+        # Métrica reconocida pero no implementada
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         # Error general (ej. la tabla de BD no existe)
