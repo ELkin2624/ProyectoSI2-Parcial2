@@ -1,0 +1,21 @@
+# El framework para crear la API
+fastapi
+
+# El servidor que correrá FastAPI
+uvicorn[standard]
+
+# Para hablar con la API de Gemini
+cohere
+
+# Para leer nuestro archivo .env (donde irá la API Key)
+python-dotenv
+
+# Para analizar datos y crear el Excel
+pandas
+
+# Requerido por Pandas para escribir archivos Excel (.xlsx)
+openpyxl
+
+# Para conectar a la Base de Datos
+sqlalchemy
+psycopg2-binary

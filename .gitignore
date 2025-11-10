@@ -11,6 +11,10 @@
 *.env
 */.env
 
+venv/
+env/
+__pycache__/
+
 # Archivos de configuración de sistema
 .DS_Store
 .DS_Store?
@@ -68,4 +72,3 @@ dist/
 .idea/
 .DS_Store
 Thumbs.db
-"@ | Out-File -Encoding utf8 .gitignore

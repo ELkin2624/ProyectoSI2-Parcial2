@@ -1,9 +1,7 @@
 // src/api/BoutiqueApi.ts
 import axios, { AxiosError } from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-1
-// console.log(baseURL);
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const boutiqueApi = axios.create({
     baseURL,

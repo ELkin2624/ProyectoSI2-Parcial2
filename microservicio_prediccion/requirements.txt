@@ -1,0 +1,24 @@
+# El framework para crear la API
+fastapi
+
+# El servidor que correrá FastAPI
+uvicorn[standard]
+
+# La librería principal de Machine Learning
+scikit-learn
+
+# Para manipular y limpiar todos los datos
+pandas
+
+# Para guardar y cargar nuestro modelo (el archivo .pkl)
+joblib
+
+# --- Conexión a BD (para el entrenamiento) ---
+sqlalchemy
+psycopg2-binary
+
+# Para leer nuestro archivo .env
+python-dotenv
+
+# ¡Recomendado! Para la Fase 1 (Entrenamiento)
+jupyter
