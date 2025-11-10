@@ -10,7 +10,7 @@ import { MyPaymentsPage } from "./shop/pages/MyPaymentsPage";
 import { CheckoutPage } from "./shop/pages/checkout/CheckoutPage";
 import { MyAddressesPage } from "./shop/pages/addresses/MyAddressesPage";
 import { PaymentPage } from "./shop/pages/payment/PaymentPage";
-import { AdminCustomersPage, AdminProductPage, AdminProductsPage, AdminSalesHistoryPage, AdminSalesPage, DashboardPage } from "./admin/pages";
+import { AdminCustomersPage, AdminProductPage, AdminProductsPage, AdminReportsPage, AdminSalesHistoryPage, AdminSalesPage, DashboardPage } from "./admin/pages";
 import { InventoryPage } from "./admin/pages/InventoryPage";
 import OrdersPage from "./admin/pages/OrdersPage";
 import AdminPaymentsPage from "./admin/pages/AdminPaymentsPage";
@@ -127,6 +127,10 @@ export const appRouter = createBrowserRouter([
             {
                 path: 'sales-history',
                 element: <AdminSalesHistoryPage />
+            },
+            {
+                path: 'reports',
+                element: <AdminReportsPage />
             }
         ]
     },

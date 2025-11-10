@@ -7,6 +7,7 @@ import { VariantesSection } from '@/admin/components/VariantesSection';
 import { AtributosSection } from '@/admin/components/AtributosSection';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import type { Productos } from '@/interfaces/productos.interface';
 
 
 
@@ -111,12 +112,27 @@ export const AdminProductPage = () => {
         return <Navigate to={'/admin/products'} />
     }
 
+    // Producto por defecto para nuevo producto
+    const defaultProduct: Productos = {
+        id: 0,
+        nombre: '',
+        slug: '',
+        descripcion: '',
+        categoria: undefined as any,
+        atributos: [],
+        variantes: [],
+        imagenes_galeria: [],
+        activo: true,
+        creado_en: new Date(),
+        actualizado_en: new Date()
+    };
+
     return (
         <>
             <ProductFormNew
                 title={title}
                 subTitle={subtitle}
-                product={product!}
+                product={product || defaultProduct}
                 onSubmit={handleSubmit}
                 isPending={mutation.isPending}
             />

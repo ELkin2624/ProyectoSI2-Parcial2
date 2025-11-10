@@ -1,7 +1,9 @@
 // src/api/BoutiqueApi.ts
 import axios, { AxiosError } from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+1
+// console.log(baseURL);
 
 const boutiqueApi = axios.create({
     baseURL,
@@ -31,7 +33,7 @@ boutiqueApi.interceptors.response.use(
         const handleLogout = () => {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
-            window.location.href = '/auth/login'; 
+            window.location.href = '/auth/login';
             return Promise.reject(error);
         }
 
@@ -47,7 +49,7 @@ boutiqueApi.interceptors.response.use(
 
             // 5. Guardar el nuevo access_token
             localStorage.setItem('access_token', data.access);
-            
+
             // 6. Actualizar el header de la petición original y reintentarla
             if (originalRequest) {
                 originalRequest.headers.Authorization = `Bearer ${data.access}`;
@@ -57,7 +59,7 @@ boutiqueApi.interceptors.response.use(
         } catch (refreshError) {
             return handleLogout();
         }
-        
+
         return Promise.reject(error);
     }
 )
