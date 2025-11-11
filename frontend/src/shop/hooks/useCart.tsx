@@ -14,8 +14,10 @@ export const useCart = () => {
     const query = useQuery({
         queryKey: ['carrito'],
         queryFn: getCarritoAction,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
         enabled: authStatus === 'authenticated',
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
         retry: false
     });
 

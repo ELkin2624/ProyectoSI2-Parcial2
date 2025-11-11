@@ -38,6 +38,8 @@ import {
 import { Plus, Pencil, Trash2, Loader2, Package, Search } from "lucide-react";
 import { toast } from "sonner";
 import { boutiqueApi } from "@/api/BoutiqueApi";
+import { CustomPagination } from "@/components/custom/CustomPagination";
+import { useSearchParams } from "react-router";
 
 interface Almacen {
     id: number;
@@ -67,7 +69,29 @@ interface StockFormData {
     cantidad: string;
 }
 
+interface PaginatedStocksResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Stock[];
+}
+
+interface PaginatedVariantesResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: ProductoVariante[];
+}
+
+interface PaginatedAlmacenesResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Almacen[];
+}
+
 export const StockSection = () => {
+    const [searchParams] = useSearchParams();
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -80,33 +104,54 @@ export const StockSection = () => {
     });
 
     const queryClient = useQueryClient();
+    const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
-    // Query para obtener stock
-    const { data: stocks = [], isLoading } = useQuery({
-        queryKey: ['stocks'],
+    // Query para obtener stock con paginación y caché de 5 minutos
+    const { data: stocksResponse, isLoading } = useQuery({
+        queryKey: ['stocks', currentPage],
         queryFn: async () => {
-            const { data } = await boutiqueApi.get<Stock[]>('/inventario/stock/');
+            const { data } = await boutiqueApi.get<PaginatedStocksResponse>(`/inventario/stock/?page=${currentPage}`);
             return data;
         },
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
     });
 
-    // Query para obtener almacenes
-    const { data: almacenes = [] } = useQuery({
+    const stocks = stocksResponse?.results || [];
+    const totalPages = stocksResponse ? Math.ceil(stocksResponse.count / 20) : 1;
+
+    // Query para obtener almacenes con caché de 5 minutos
+    const { data: almacenesResponse } = useQuery({
         queryKey: ['almacenes'],
         queryFn: async () => {
-            const { data } = await boutiqueApi.get<Almacen[]>('/inventario/almacenes/');
+            const { data } = await boutiqueApi.get<PaginatedAlmacenesResponse>('/inventario/almacenes/', {
+                params: { page_size: 1000 } // Traer todos los almacenes para el select
+            });
             return data;
         },
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
     });
 
-    // Query para obtener variantes
-    const { data: variantes = [] } = useQuery({
+    const almacenes = almacenesResponse?.results || [];
+
+    // Query para obtener variantes con caché de 5 minutos
+    const { data: variantesResponse } = useQuery({
         queryKey: ['variantes-all'],
         queryFn: async () => {
-            const { data } = await boutiqueApi.get<ProductoVariante[]>('/productos/admin/variantes/');
+            const { data } = await boutiqueApi.get<PaginatedVariantesResponse>('/productos/admin/variantes/', {
+                params: { page_size: 1000 } // Traer todas las variantes para el select
+            });
             return data;
         },
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
     });
+
+    const variantes = variantesResponse?.results || [];
 
     // Mutation para crear stock
     const createMutation = useMutation({
@@ -474,6 +519,13 @@ export const StockSection = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Paginación */}
+            {!isLoading && totalPages > 1 && (
+                <div className="mt-6">
+                    <CustomPagination totalPages={totalPages} />
+                </div>
+            )}
         </>
     );
 };

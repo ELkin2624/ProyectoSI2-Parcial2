@@ -40,8 +40,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) 
     { icon: ShoppingCart, label: 'Ventas', to: '/admin/sales' },
     { icon: FileText, label: 'Historial', to: '/admin/sales-history' },
     { icon: PieChart, label: 'Reportes', to: '/admin/reports' },
-    { icon: Bell, label: 'Notificaciones' },
-    { icon: Settings, label: 'Ajustes' },
+    { icon: Settings, label: 'Configuración', to: '/admin/settings' },
     { icon: HelpCircle, label: 'Ayuda' }
   ];
 

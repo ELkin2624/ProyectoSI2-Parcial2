@@ -33,6 +33,10 @@ urlpatterns = [
     
     # --- URLs del router "Mi Cuenta" (para /me/addresses/) ---
     path('me/', include(router_me.urls)),
+    
+    # --- Cambiar contraseña ---
+    # POST /api/usuarios/change-password/
+    path('change-password/', views.ChangePasswordView.as_view(), name='change-password'),
 
     # --- URLs del router "Admin" ---
     path('admin/', include(router_admin.urls)),

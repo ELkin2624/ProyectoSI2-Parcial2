@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { currencyFormatter } from '@/lib/currency-formatter';
 import { getPedidosAction, updatePedidoEstadoAction, type Pedido } from '@/admin/actions/pedidos.action';
+import { CustomPagination } from '@/components/custom/CustomPagination';
+import { useSearchParams } from 'react-router';
 
 const estadoBadgeColors = {
     PENDIENTE: 'bg-yellow-100 text-yellow-800',
@@ -33,18 +35,37 @@ const estadoLabels = {
 
 export default function OrdersPage() {
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
     const [estadoFilter, setEstadoFilter] = useState<string>('TODOS');
     const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null);
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-    // Fetch orders con configuración optimizada
-    const { data: ordersData, isLoading, refetch } = useQuery({
-        queryKey: ['admin-orders'],
-        queryFn: getPedidosAction,
-        staleTime: 1000 * 60 * 2, // 2 minutos
-        refetchOnWindowFocus: true,
-        refetchOnMount: 'always',
+    // Obtener página actual de los parámetros de URL
+    const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+    // Fetch orders con paginación y configuración optimizada (caché de 5 minutos)
+    const { data: ordersResponse, isLoading, refetch, error, isError } = useQuery({
+        queryKey: ['admin-orders', currentPage],
+        queryFn: () => getPedidosAction(currentPage),
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
+        retry: 2, // Reintentar 2 veces en caso de error
+    });
+
+    const ordersData = ordersResponse?.results || [];
+    const totalPages = ordersResponse ? Math.ceil(ordersResponse.count / 20) : 1;
+
+    // Log para debugging
+    console.log('Orders Query State:', {
+        isLoading,
+        isError,
+        error,
+        currentPage,
+        totalCount: ordersResponse?.count,
+        dataLength: ordersData?.length,
+        totalPages
     });
 
     // Update order status mutation con optimistic update
@@ -84,6 +105,7 @@ export default function OrdersPage() {
         },
         // Siempre refrescar después
         onSettled: () => {
+            // Invalidar todas las páginas de pedidos
             queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
         },
         onSuccess: () => {
@@ -172,6 +194,16 @@ export default function OrdersPage() {
                 {isLoading ? (
                     <div className="flex justify-center items-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                        <p className="ml-2 text-gray-500">Cargando pedidos...</p>
+                    </div>
+                ) : isError ? (
+                    <div className="text-center py-12">
+                        <p className="text-red-500 font-semibold">Error al cargar pedidos</p>
+                        <p className="text-gray-500 text-sm mt-2">{error?.message || 'Error desconocido'}</p>
+                        <Button onClick={() => refetch()} className="mt-4">
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Reintentar
+                        </Button>
                     </div>
                 ) : filteredOrders && filteredOrders.length > 0 ? (
                     <Table>
@@ -231,6 +263,13 @@ export default function OrdersPage() {
                     </div>
                 )}
             </div>
+
+            {/* Paginación */}
+            {!isLoading && !isError && totalPages > 1 && (
+                <div className="mt-6">
+                    <CustomPagination totalPages={totalPages} />
+                </div>
+            )}
 
             {/* Order Detail Modal */}
             <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>

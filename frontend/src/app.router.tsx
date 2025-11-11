@@ -5,12 +5,12 @@ import { createBrowserRouter, Navigate } from "react-router";
 import { RegisterPage } from "./auth/page/register/RegisterPage";
 import { LoginPage } from "./auth/page/login/LoginPage";
 import { ShopLayout } from "./shop/layouts/ShopLayout";
-import { HomePage, ProductPage, GenderPage, CartPage } from "./shop/pages";
+import { HomePage, ProductPage, GenderPage, CartPage, ProfileSettingsPage } from "./shop/pages";
 import { MyPaymentsPage } from "./shop/pages/MyPaymentsPage";
 import { CheckoutPage } from "./shop/pages/checkout/CheckoutPage";
 import { MyAddressesPage } from "./shop/pages/addresses/MyAddressesPage";
 import { PaymentPage } from "./shop/pages/payment/PaymentPage";
-import { AdminCustomersPage, AdminProductPage, AdminProductsPage, AdminReportsPage, AdminSalesHistoryPage, AdminSalesPage, DashboardPage } from "./admin/pages";
+import { AdminCustomersPage, AdminProductPage, AdminProductsPage, AdminReportsPage, AdminSalesHistoryPage, AdminSalesPage, DashboardPage, SettingsPage } from "./admin/pages";
 import { InventoryPage } from "./admin/pages/InventoryPage";
 import OrdersPage from "./admin/pages/OrdersPage";
 import AdminPaymentsPage from "./admin/pages/AdminPaymentsPage";
@@ -57,6 +57,10 @@ export const appRouter = createBrowserRouter([
             {
                 path: 'my-payments',
                 element: <MyPaymentsPage />
+            },
+            {
+                path: 'profile/settings',
+                element: <ProfileSettingsPage />
             }
         ]
     },
@@ -131,6 +135,10 @@ export const appRouter = createBrowserRouter([
             {
                 path: 'reports',
                 element: <AdminReportsPage />
+            },
+            {
+                path: 'settings',
+                element: <SettingsPage />
             }
         ]
     },

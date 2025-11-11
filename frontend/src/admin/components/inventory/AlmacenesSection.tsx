@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
+import { CustomPagination } from "@/components/custom/CustomPagination";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -47,7 +49,17 @@ interface AlmacenFormData {
     activo: boolean;
 }
 
+interface PaginatedAlmacenesResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Almacen[];
+}
+
 export const AlmacenesSection = () => {
+    const [searchParams] = useSearchParams();
+    const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedAlmacen, setSelectedAlmacen] = useState<Almacen | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -61,14 +73,22 @@ export const AlmacenesSection = () => {
 
     const queryClient = useQueryClient();
 
-    // Query para obtener almacenes
-    const { data: almacenes = [], isLoading } = useQuery({
-        queryKey: ['almacenes'],
+    // Query para obtener almacenes con caché de 5 minutos y paginación
+    const { data: almacenesResponse, isLoading } = useQuery({
+        queryKey: ['almacenes', currentPage],
         queryFn: async () => {
-            const { data } = await boutiqueApi.get<Almacen[]>('/inventario/almacenes/');
+            const { data } = await boutiqueApi.get<PaginatedAlmacenesResponse>('/inventario/almacenes/', {
+                params: { page: currentPage }
+            });
             return data;
         },
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
     });
+
+    const almacenes = almacenesResponse?.results || [];
+    const totalPages = almacenesResponse ? Math.ceil(almacenesResponse.count / 20) : 1;
 
     // Mutation para crear almacén
     const createMutation = useMutation({
@@ -233,8 +253,8 @@ export const AlmacenesSection = () => {
                                     <TableCell>{almacen.capacidad} m³</TableCell>
                                     <TableCell>
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${almacen.activo
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-gray-100 text-gray-700'
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-gray-100 text-gray-700'
                                             }`}>
                                             {almacen.activo ? 'Activo' : 'Inactivo'}
                                         </span>
@@ -372,6 +392,13 @@ export const AlmacenesSection = () => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Paginación */}
+            {!isLoading && totalPages > 1 && (
+                <div className="mt-6">
+                    <CustomPagination totalPages={totalPages} />
+                </div>
+            )}
         </>
     );
 };

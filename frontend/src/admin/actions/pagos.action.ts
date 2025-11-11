@@ -24,6 +24,13 @@ export interface Pago {
     updated_at: string;
 }
 
+export interface PaginatedPagosResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Pago[];
+}
+
 export interface CreatePagoData {
     pedido_id: number;
     metodo_pago: string;
@@ -32,12 +39,12 @@ export interface CreatePagoData {
 }
 
 /**
- * Obtiene todos los pagos (admin)
- * Endpoint según documentación: GET /api/pagos/admin/
+ * Obtiene todos los pagos (admin) con paginación
+ * Endpoint según documentación: GET /api/pagos/admin/?page=1
  */
-export const getPagosAction = async (): Promise<Pago[]> => {
+export const getPagosAction = async (page: number = 1): Promise<PaginatedPagosResponse> => {
     try {
-        const { data } = await boutiqueApi.get('/pagos/admin/');
+        const { data } = await boutiqueApi.get<PaginatedPagosResponse>(`/pagos/admin/?page=${page}`);
         return data;
     } catch (error) {
         console.error('Error al obtener pagos:', error);

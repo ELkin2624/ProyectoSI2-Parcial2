@@ -1,6 +1,7 @@
 # en backend/apps/usuarios/views.py
 from rest_framework import generics, viewsets, permissions, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import CustomUser, Profile, Address
 from .serializers import (
     UserRegistrationSerializer,
@@ -64,6 +65,49 @@ class AddressViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Asigna automáticamente al usuario logueado al crear una dirección."""
         serializer.save(user=self.request.user)
+
+
+class ChangePasswordView(APIView):
+    """
+    Vista para cambiar la contraseña del usuario autenticado.
+    URL: /api/usuarios/change-password/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        if not old_password or not new_password:
+            return Response(
+                {'detail': 'Se requieren old_password y new_password'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Verificar que la contraseña actual sea correcta
+        if not user.check_password(old_password):
+            return Response(
+                {'detail': 'La contraseña actual es incorrecta'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validar la nueva contraseña (longitud mínima)
+        if len(new_password) < 8:
+            return Response(
+                {'detail': 'La nueva contraseña debe tener al menos 8 caracteres'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Cambiar la contraseña
+        user.set_password(new_password)
+        user.save()
+
+        return Response(
+            {'message': 'Contraseña cambiada exitosamente'},
+            status=status.HTTP_200_OK
+        )
+
 
 # --- Vistas de ADMINISTRACIÓN (Solo para Admin/Staff) ---
 class AdminUserViewSet(viewsets.ModelViewSet):

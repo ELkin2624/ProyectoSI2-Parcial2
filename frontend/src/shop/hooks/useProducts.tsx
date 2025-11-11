@@ -17,6 +17,8 @@ export const useProducts = () => {
             page,           // ⭐ Pasar el número de página
             page_size
         }),
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
     });
 }

@@ -18,7 +18,16 @@ export const AIReportChat = () => {
         {
             id: '1',
             role: 'assistant',
-            content: '¡Hola! Soy tu asistente de reportes con IA. Puedo ayudarte a analizar datos, generar reportes personalizados y responder preguntas sobre tu negocio. ¿En qué puedo ayudarte hoy?',
+            content: `¡Hola! 👋 Soy tu asistente de reportes con IA. Puedo ayudarte a generar reportes personalizados usando lenguaje natural.
+
+📊 **Ejemplos de consultas:**
+• "Quiero las ventas totales del mes pasado en Excel"
+• "Muéstrame los productos más vendidos este mes"
+• "Clientes nuevos del último trimestre"
+• "Pedidos pendientes de la última semana"
+• "Dame el inventario bajo en formato Excel"
+
+💡 Especifica el período (mes pasado, este mes, última semana) y el formato (Excel o JSON). ¿Qué reporte necesitas?`,
             timestamp: new Date()
         }
     ]);
@@ -41,13 +50,35 @@ export const AIReportChat = () => {
 
             recognitionInstance.onresult = (event: any) => {
                 const transcript = event.results[0][0].transcript;
-                setInputText(prev => prev + ' ' + transcript);
+                const confidence = event.results[0][0].confidence;
+
+                // Agregar el texto transcrito
+                setInputText(prev => {
+                    const newText = prev.trim() ? prev + ' ' + transcript : transcript;
+                    return newText;
+                });
+
                 setIsRecording(false);
+
+                toast.success('✅ Texto transcrito', {
+                    description: `Confianza: ${(confidence * 100).toFixed(0)}%`,
+                    duration: 2000
+                });
             };
 
             recognitionInstance.onerror = (event: any) => {
                 console.error('Error en reconocimiento de voz:', event.error);
-                toast.error('Error al capturar audio. Por favor, intenta de nuevo.');
+
+                let errorMessage = 'Error al capturar audio';
+                if (event.error === 'no-speech') {
+                    errorMessage = 'No se detectó ningún audio. Intenta hablar más cerca del micrófono.';
+                } else if (event.error === 'network') {
+                    errorMessage = 'Error de red. Verifica tu conexión.';
+                } else if (event.error === 'not-allowed') {
+                    errorMessage = 'Permiso denegado. Habilita el acceso al micrófono.';
+                }
+
+                toast.error(errorMessage);
                 setIsRecording(false);
             };
 
@@ -73,18 +104,24 @@ export const AIReportChat = () => {
 
     const toggleRecording = () => {
         if (!recognition) {
-            toast.error('El reconocimiento de voz no está disponible en tu navegador');
+            toast.error('El reconocimiento de voz no está disponible en tu navegador', {
+                description: 'Por favor usa Google Chrome para mejor compatibilidad'
+            });
             return;
         }
 
         if (isRecording) {
             recognition.stop();
             setIsRecording(false);
+            toast.success('Grabación detenida');
         } else {
             try {
                 recognition.start();
                 setIsRecording(true);
-                toast.info('Escuchando... Habla ahora');
+                toast.info('🎤 Escuchando...', {
+                    description: 'Habla ahora. Tu voz será convertida a texto.',
+                    duration: 3000
+                });
             } catch (error) {
                 console.error('Error al iniciar reconocimiento:', error);
                 toast.error('No se pudo iniciar el reconocimiento de voz');
@@ -109,33 +146,86 @@ export const AIReportChat = () => {
         setIsLoading(true);
 
         try {
-            // Llamar al endpoint de IA del microservicio
-            const response = await fetch('http://localhost:8001/ia/chat', {
+            // Llamar al endpoint del microservicio de reportes con IA
+            const response = await fetch('http://localhost:8001/generar-reporte-ia', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    mensaje: trimmedText,
-                    contexto: 'reportes'
+                    prompt: trimmedText
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Error al comunicarse con el servidor');
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'Error al comunicarse con el servidor');
             }
 
-            const data = await response.json();
+            // Verificar si la respuesta es un archivo Excel
+            const contentType = response.headers.get('content-type');
 
-            // Agregar respuesta del asistente
-            const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: data.respuesta || 'Lo siento, no pude procesar tu solicitud.',
-                timestamp: new Date()
-            };
+            if (contentType?.includes('spreadsheet') || contentType?.includes('excel')) {
+                // Es un archivo Excel, descargarlo
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reporte_${Date.now()}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
 
-            setMessages(prev => [...prev, assistantMessage]);
+                const assistantMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: '✅ He generado tu reporte en formato Excel. La descarga debería iniciar automáticamente. El reporte contiene los datos solicitados organizados en hojas de cálculo listas para análisis.',
+                    timestamp: new Date()
+                };
+
+                setMessages(prev => [...prev, assistantMessage]);
+                toast.success('Reporte descargado exitosamente');
+            } else {
+                // Es JSON con datos
+                const data = await response.json();
+
+                // Formatear la respuesta de manera legible
+                let responseContent = '';
+
+                if (data.data && Array.isArray(data.data)) {
+                    responseContent += `📊 **Reporte de ${data.metric || 'datos'}**\n\n`;
+                    responseContent += `📈 Total de registros: ${data.count}\n\n`;
+
+                    // Mostrar los primeros 5 registros como ejemplo
+                    if (data.count > 0) {
+                        responseContent += `**Primeros resultados:**\n\n`;
+                        data.data.slice(0, 5).forEach((item: any, index: number) => {
+                            responseContent += `${index + 1}. ${JSON.stringify(item, null, 2)}\n`;
+                        });
+
+                        if (data.count > 5) {
+                            responseContent += `\n... y ${data.count - 5} registros más.\n`;
+                        }
+
+                        responseContent += `\n💡 *Tip: Si deseas descargar estos datos en Excel, especifica "en formato excel" en tu solicitud.*`;
+                    } else {
+                        responseContent += '⚠️ No se encontraron registros para los criterios especificados.';
+                    }
+                } else {
+                    responseContent = JSON.stringify(data, null, 2);
+                }
+
+                const assistantMessage: Message = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: responseContent,
+                    timestamp: new Date()
+                };
+
+                setMessages(prev => [...prev, assistantMessage]);
+                toast.success('Reporte generado exitosamente');
+            }
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
 
@@ -185,7 +275,7 @@ export const AIReportChat = () => {
                                     }`}
                             >
                                 {message.role === 'assistant' && (
-                                    <div className="flex-shrink-0">
+                                    <div className="shrink-0">
                                         <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                                             <Bot className="h-4 w-4 text-blue-600" />
                                         </div>
@@ -209,7 +299,7 @@ export const AIReportChat = () => {
                                 </div>
 
                                 {message.role === 'user' && (
-                                    <div className="flex-shrink-0">
+                                    <div className="shrink-0">
                                         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                                             <User className="h-4 w-4 text-gray-600" />
                                         </div>
@@ -220,7 +310,7 @@ export const AIReportChat = () => {
 
                         {isLoading && (
                             <div className="flex gap-3 justify-start">
-                                <div className="flex-shrink-0">
+                                <div className="shrink-0">
                                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                                         <Bot className="h-4 w-4 text-blue-600" />
                                     </div>
@@ -238,23 +328,38 @@ export const AIReportChat = () => {
 
                 {/* Área de input */}
                 <div className="border-t p-4">
+                    {/* Indicador de grabación */}
+                    {isRecording && (
+                        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 animate-pulse">
+                            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                            <span className="text-sm text-red-700 font-medium">
+                                🎤 Grabando... Habla ahora
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex gap-2">
-                        <Textarea
-                            ref={textareaRef}
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            onKeyDown={handleKeyPress}
-                            placeholder="Escribe tu pregunta o haz clic en el micrófono para hablar..."
-                            className="resize-none min-h-[60px]"
-                            disabled={isLoading || isRecording}
-                        />
+                        <div className="flex-1">
+                            <Textarea
+                                ref={textareaRef}
+                                value={inputText}
+                                onChange={(e) => setInputText(e.target.value)}
+                                onKeyDown={handleKeyPress}
+                                placeholder={isRecording
+                                    ? "Hablando... El texto aparecerá aquí automáticamente"
+                                    : "Escribe tu consulta aquí o usa el micrófono 🎤 para hablar..."}
+                                className="resize-none min-h-[60px]"
+                                disabled={isLoading || isRecording}
+                            />
+                        </div>
                         <div className="flex flex-col gap-2">
                             <Button
                                 onClick={toggleRecording}
                                 variant={isRecording ? "destructive" : "outline"}
                                 size="icon"
                                 disabled={isLoading}
-                                title={isRecording ? "Detener grabación" : "Grabar voz"}
+                                title={isRecording ? "Detener grabación de voz" : "Grabar mensaje con voz"}
+                                className={isRecording ? "animate-pulse" : ""}
                             >
                                 {isRecording ? (
                                     <MicOff className="h-4 w-4" />
@@ -276,9 +381,14 @@ export const AIReportChat = () => {
                             </Button>
                         </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                        💡 Tip: Presiona Enter para enviar, Shift+Enter para nueva línea
-                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-muted-foreground">
+                            💡 <strong>Escribe</strong> tu consulta o usa el <strong>micrófono 🎤</strong> para convertir voz a texto
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            Enter = Enviar | Shift+Enter = Nueva línea
+                        </p>
+                    </div>
                 </div>
             </CardContent>
         </Card>

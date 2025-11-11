@@ -44,13 +44,16 @@ export const MyPaymentsPage = () => {
     const [selectedPago, setSelectedPago] = useState<Pago | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
 
-    // Query para obtener MIS pagos (del usuario autenticado)
+    // Query para obtener MIS pagos (del usuario autenticado) con caché de 5 minutos
     const { data: pagos = [], isLoading } = useQuery({
         queryKey: ['mis-pagos'],
         queryFn: async () => {
             const { data } = await boutiqueApi.get<Pago[]>('/pagos/mis-pagos/');
             return data;
         },
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
     });
 
     const handleView = (pago: Pago) => {

@@ -1,4 +1,4 @@
-import { Search, ShoppingBag, CreditCard, MapPin } from "lucide-react";
+import { Search, ShoppingBag, CreditCard, MapPin, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRef, type KeyboardEvent } from "react";
@@ -80,6 +80,15 @@ const Header = () => {
                             >
                                 <CreditCard className="h-4 w-4" />
                                 Mis Pagos
+                            </Link>
+                            <Link
+                                to="/profile/settings"
+                                className={cn(`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1`,
+                                    location.pathname === '/profile/settings' ? 'underline underline-offset-4' : ''
+                                )}
+                            >
+                                <Settings className="h-4 w-4" />
+                                Mi Cuenta
                             </Link>
                         </>
                     )}

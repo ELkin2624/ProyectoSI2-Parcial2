@@ -41,13 +41,20 @@ export interface Pedido {
     items: DetallePedido[];
 }
 
+export interface PaginatedPedidosResponse {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: Pedido[];
+}
+
 /**
- * Obtiene todos los pedidos (admin)
- * Endpoint según documentación: GET /api/pedidos/admin/
+ * Obtiene todos los pedidos (admin) con paginación
+ * Endpoint según documentación: GET /api/pedidos/admin/?page=1
  */
-export const getPedidosAction = async (): Promise<Pedido[]> => {
+export const getPedidosAction = async (page: number = 1): Promise<PaginatedPedidosResponse> => {
     try {
-        const { data } = await boutiqueApi.get('/pedidos/admin/');
+        const { data } = await boutiqueApi.get<PaginatedPedidosResponse>(`/pedidos/admin/?page=${page}`);
         return data;
     } catch (error) {
         console.error('Error al obtener pedidos:', error);

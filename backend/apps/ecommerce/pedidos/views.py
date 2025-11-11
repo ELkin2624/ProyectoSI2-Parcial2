@@ -142,9 +142,9 @@ class PedidoClienteViewSet(viewsets.ReadOnlyModelViewSet):
 
 class AdminPedidoViewSet(viewsets.ModelViewSet):
     """
-    (ADMIN) ViewSet para gestionar TODOS los pedidos.
+    (ADMIN) ViewSet para gestionar TODOS los pedidos con paginación.
     """
-    queryset = Pedido.objects.all().select_related('usuario').prefetch_related('items__variante__producto', 'pagos')
+    queryset = Pedido.objects.all().select_related('usuario').prefetch_related('items__variante__producto', 'pagos').order_by('-creado_en')
     permission_classes = [permissions.IsAdminUser]
     
     def get_serializer_class(self):

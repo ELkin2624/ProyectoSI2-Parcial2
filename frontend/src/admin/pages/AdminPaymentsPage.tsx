@@ -18,6 +18,8 @@ import {
     type Pago
 } from '@/admin/actions/pagos.action';
 import { getPedidosAction } from '@/admin/actions/pedidos.action';
+import { CustomPagination } from '@/components/custom/CustomPagination';
+import { useSearchParams } from 'react-router';
 
 const estadoBadgeColors = {
     PENDIENTE: 'bg-yellow-100 text-yellow-800',
@@ -39,6 +41,7 @@ const estadoLabels = {
 
 export default function AdminPaymentsPage() {
     const queryClient = useQueryClient();
+    const [searchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState('');
     const [metodoPagoFilter, setMetodoPagoFilter] = useState<string>('TODOS');
     const [estadoFilter, setEstadoFilter] = useState<string>('TODOS');
@@ -52,22 +55,33 @@ export default function AdminPaymentsPage() {
     const [monto, setMonto] = useState('');
     const [notas, setNotas] = useState('');
 
-    // Fetch payments con configuración optimizada
-    const { data: paymentsData, isLoading, refetch } = useQuery({
-        queryKey: ['admin-payments'],
-        queryFn: getPagosAction,
-        staleTime: 1000 * 60 * 2, // 2 minutos
-        refetchOnWindowFocus: true,
-        refetchOnMount: 'always',
+    // Obtener página actual de los parámetros de URL
+    const currentPage = parseInt(searchParams.get('page') || '1', 10);
+
+    // Fetch payments con paginación y configuración optimizada (caché de 5 minutos)
+    const { data: paymentsResponse, isLoading, refetch, error, isError } = useQuery({
+        queryKey: ['admin-payments', currentPage],
+        queryFn: () => getPagosAction(currentPage),
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
+        refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
+        retry: 2,
     });
 
+    const paymentsData = paymentsResponse?.results || [];
+    const totalPages = paymentsResponse ? Math.ceil(paymentsResponse.count / 20) : 1;
+
     // Fetch pedidos para el formulario de crear pago
-    const { data: pedidosData } = useQuery({
-        queryKey: ['admin-pedidos'],
-        queryFn: getPedidosAction,
-        staleTime: 1000 * 60 * 5, // 5 minutos
+    const { data: pedidosResponse } = useQuery({
+        queryKey: ['admin-pedidos', 1],
+        queryFn: () => getPedidosAction(1),
+        staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
+        gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
         enabled: isCreateModalOpen, // Solo cargar cuando se abre el modal
+        refetchOnWindowFocus: false,
     });
+
+    const pedidosData = pedidosResponse?.results || [];
 
     // Approve payment mutation con optimistic update
     const approvePaymentMutation = useMutation({
@@ -362,6 +376,13 @@ export default function AdminPaymentsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Paginación */}
+            {!isLoading && !isError && totalPages > 1 && (
+                <div className="mt-6">
+                    <CustomPagination totalPages={totalPages} />
+                </div>
+            )}
 
             {/* Payment Detail Modal */}
             <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
