@@ -30,8 +30,26 @@ export interface CreateAddressData {
  * Obtiene todas las direcciones del usuario autenticado
  */
 export const getMyAddressesAction = async (): Promise<Address[]> => {
-    const { data } = await boutiqueApi.get<Address[]>('/usuarios/me/addresses/');
-    return data;
+    try {
+        console.log('🔍 Obteniendo direcciones del usuario...');
+        const { data } = await boutiqueApi.get<any>('/usuarios/me/addresses/');
+        console.log('✅ Direcciones obtenidas:', data);
+
+        // El backend devuelve paginación: {count, next, previous, results}
+        if (data && data.results && Array.isArray(data.results)) {
+            return data.results;
+        }
+
+        // Si viene un array directo (sin paginación)
+        if (Array.isArray(data)) {
+            return data;
+        }
+
+        return [];
+    } catch (error) {
+        console.error('❌ Error al obtener direcciones:', error);
+        return [];
+    }
 }
 
 /**

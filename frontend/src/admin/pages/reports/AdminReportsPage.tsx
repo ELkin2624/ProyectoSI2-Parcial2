@@ -28,6 +28,7 @@ import {
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import { generarReporteIA, descargarArchivo } from '@/admin/actions/reportes.action';
 
 export const AdminReportsPage = () => {
     const [isGenerating, setIsGenerating] = useState(false);
@@ -159,41 +160,25 @@ export const AdminReportsPage = () => {
         setReportData(null);
 
         try {
-            const response = await fetch('http://localhost:8001/generar-reporte-ia', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ prompt: trimmedPrompt })
-            });
+            const result = await generarReporteIA({ prompt: trimmedPrompt });
 
-            if (!response.ok) {
-                throw new Error('Error al generar el reporte');
-            }
-
-            // Verificar si es Excel
-            const contentType = response.headers.get('content-type');
-
-            if (contentType?.includes('spreadsheet') || contentType?.includes('excel')) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `reporte_${Date.now()}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+            if (result.isFile) {
+                // Es un archivo Excel, descargarlo
+                descargarArchivo(
+                    result.data,
+                    result.fileName || `reporte_${Date.now()}.xlsx`
+                );
                 toast.success('Reporte descargado exitosamente en Excel');
             } else {
-                const data = await response.json();
-                setReportData(data);
+                // Es JSON, mostrarlo en pantalla
+                setReportData(result.data);
                 toast.success('Reporte generado exitosamente');
             }
 
         } catch (error) {
             console.error('Error al generar reporte:', error);
-            toast.error('Error al generar el reporte. Verifica que el microservicio esté activo.');
+            const errorMessage = error instanceof Error ? error.message : 'Error al generar el reporte';
+            toast.error(errorMessage);
         } finally {
             setIsGenerating(false);
         }
@@ -219,40 +204,25 @@ export const AdminReportsPage = () => {
             const metricLabel = metricsOptions.find(m => m.value === selectedMetric)?.label || selectedMetric;
             const prompt = `Generar reporte de ${metricLabel} desde ${startDate} hasta ${endDate} en formato ${selectedFormat}`;
 
-            const response = await fetch('http://localhost:8001/generar-reporte-ia', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ prompt })
-            });
+            const result = await generarReporteIA({ prompt });
 
-            if (!response.ok) {
-                throw new Error('Error al generar el reporte');
-            }
-
-            // Si es Excel, descargar el archivo
-            if (selectedFormat === 'excel') {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${selectedMetric}_${startDate}_${endDate}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+            if (result.isFile) {
+                // Es un archivo Excel, descargarlo
+                descargarArchivo(
+                    result.data,
+                    result.fileName || `${selectedMetric}_${startDate}_${endDate}.xlsx`
+                );
                 toast.success('Reporte descargado exitosamente');
             } else {
-                // Si es JSON, mostrar los datos
-                const data = await response.json();
-                setReportData(data);
+                // Es JSON, mostrar los datos
+                setReportData(result.data);
                 toast.success('Reporte generado exitosamente');
             }
 
         } catch (error) {
             console.error('Error al generar reporte:', error);
-            toast.error('Error al generar el reporte. Verifica que el microservicio esté activo.');
+            const errorMessage = error instanceof Error ? error.message : 'Error al generar el reporte';
+            toast.error(errorMessage);
         } finally {
             setIsGenerating(false);
         }

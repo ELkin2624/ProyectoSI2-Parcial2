@@ -13,7 +13,8 @@ import {
   Package,
   ClipboardList,
   CreditCard,
-  PieChart
+  PieChart,
+  TrendingUp
 } from 'lucide-react';
 import { CustomLogo } from '@/components/custom/CustomLogo';
 import { Link, useLocation } from 'react-router';
@@ -37,11 +38,12 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) 
     { icon: ClipboardList, label: 'Pedidos', to: '/admin/orders' },
     { icon: CreditCard, label: 'Pagos', to: '/admin/payments' },
     { icon: Users, label: 'Clientes', to: '/admin/users' },
-    { icon: ShoppingCart, label: 'Ventas', to: '/admin/sales' },
-    { icon: FileText, label: 'Historial', to: '/admin/sales-history' },
+    // { icon: ShoppingCart, label: 'Ventas', to: '/admin/sales' },
+    // { icon: FileText, label: 'Historial', to: '/admin/sales-history' },
     { icon: PieChart, label: 'Reportes', to: '/admin/reports' },
+    { icon: TrendingUp, label: 'Predicciones', to: '/admin/predictions' },
     { icon: Settings, label: 'Configuración', to: '/admin/settings' },
-    { icon: HelpCircle, label: 'Ayuda' }
+    // { icon: HelpCircle, label: 'Ayuda' }
   ];
 
   const isActiveRoute = (to: string) => {

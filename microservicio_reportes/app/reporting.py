@@ -28,17 +28,21 @@ def _get_ventas_totales(params: dict, date_range: dict) -> pd.DataFrame:
         FROM 
             pedidos_pedido
         WHERE 
-            creado_en BETWEEN :start AND :end
+            DATE(creado_en) BETWEEN :start AND :end
             AND estado IN ('PAGADO', 'ENVIADO', 'ENTREGADO')
         ORDER BY 
             creado_en;
     """)
+    
+    print(f"🔍 Consultando ventas_totales desde {date_range['start_date']} hasta {date_range['end_date']}")
     
     df = pd.read_sql(
         sql_query, 
         engine, 
         params={"start": date_range['start_date'], "end": date_range['end_date']}
     )
+    
+    print(f"📊 Resultados encontrados: {len(df)} registros")
     return df
 
 def _get_cantidad_pedidos(params: dict, date_range: dict) -> pd.DataFrame:
@@ -54,7 +58,7 @@ def _get_cantidad_pedidos(params: dict, date_range: dict) -> pd.DataFrame:
         FROM 
             pedidos_pedido
         WHERE 
-            creado_en BETWEEN :start AND :end
+            DATE(creado_en) BETWEEN :start AND :end
             AND estado IN ('PAGADO', 'ENVIADO', 'ENTREGADO')
         GROUP BY 
             DATE(creado_en)
@@ -62,11 +66,15 @@ def _get_cantidad_pedidos(params: dict, date_range: dict) -> pd.DataFrame:
             fecha;
     """)
     
+    print(f"🔍 Consultando cantidad_pedidos desde {date_range['start_date']} hasta {date_range['end_date']}")
+    
     df = pd.read_sql(
         sql_query, 
         engine, 
         params={"start": date_range['start_date'], "end": date_range['end_date']}
     )
+    
+    print(f"📊 Resultados encontrados: {len(df)} registros")
     return df
 
 def _get_productos_mas_vendidos(params: dict, date_range: dict) -> pd.DataFrame:
@@ -90,7 +98,7 @@ def _get_productos_mas_vendidos(params: dict, date_range: dict) -> pd.DataFrame:
         JOIN
             productos_producto AS p ON pv.producto_id = p.id
         WHERE 
-            pe.creado_en BETWEEN :start AND :end
+            DATE(pe.creado_en) BETWEEN :start AND :end
             AND pe.estado IN ('PAGADO', 'ENVIADO', 'ENTREGADO')
         GROUP BY 
             pv.sku, p.nombre
@@ -99,11 +107,15 @@ def _get_productos_mas_vendidos(params: dict, date_range: dict) -> pd.DataFrame:
         LIMIT 20;
     """)
     
+    print(f"🔍 Consultando productos_mas_vendidos desde {date_range['start_date']} hasta {date_range['end_date']}")
+    
     df = pd.read_sql(
         sql_query, 
         engine, 
         params={"start": date_range['start_date'], "end": date_range['end_date']}
     )
+    
+    print(f"📊 Resultados encontrados: {len(df)} registros")
     return df
 
 def _get_pedidos_por_estado(estado: str, date_range: dict) -> pd.DataFrame:
@@ -121,11 +133,13 @@ def _get_pedidos_por_estado(estado: str, date_range: dict) -> pd.DataFrame:
         FROM 
             pedidos_pedido
         WHERE 
-            creado_en BETWEEN :start AND :end
+            DATE(creado_en) BETWEEN :start AND :end
             AND estado = :estado
         ORDER BY 
             creado_en;
     """)
+    
+    print(f"🔍 Consultando pedidos con estado '{estado}' desde {date_range['start_date']} hasta {date_range['end_date']}")
     
     df = pd.read_sql(
         sql_query, 
@@ -136,6 +150,8 @@ def _get_pedidos_por_estado(estado: str, date_range: dict) -> pd.DataFrame:
             "estado": estado.upper() # Asegura que esté en mayúsculas como en tus 'choices'
         }
     )
+    
+    print(f"📊 Resultados encontrados: {len(df)} registros")
     return df
 
 def _get_stock_actual(params: dict, date_range: dict) -> pd.DataFrame:

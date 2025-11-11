@@ -45,16 +45,38 @@ export const MyPaymentsPage = () => {
     const [modalOpen, setModalOpen] = useState(false);
 
     // Query para obtener MIS pagos (del usuario autenticado) con caché de 5 minutos
-    const { data: pagos = [], isLoading } = useQuery({
+    const { data: pagos = [], isLoading, error } = useQuery({
         queryKey: ['mis-pagos'],
         queryFn: async () => {
-            const { data } = await boutiqueApi.get<Pago[]>('/pagos/mis-pagos/');
-            return data;
+            try {
+                console.log('🔍 Obteniendo pagos del usuario...');
+                const { data } = await boutiqueApi.get<any>('/pagos/mis-pagos/');
+                console.log('✅ Pagos obtenidos:', data);
+
+                // El backend devuelve paginación: {count, next, previous, results}
+                if (data && data.results && Array.isArray(data.results)) {
+                    return data.results;
+                }
+
+                // Si viene un array directo (sin paginación)
+                if (Array.isArray(data)) {
+                    return data;
+                }
+
+                return [];
+            } catch (error) {
+                console.error('❌ Error al obtener pagos:', error);
+                return [];
+            }
         },
         staleTime: 1000 * 60 * 5, // 5 minutos - datos considerados frescos
         gcTime: 1000 * 60 * 10, // 10 minutos - tiempo en caché
         refetchOnWindowFocus: false, // No refrescar al cambiar de ventana
     });
+
+    if (error) {
+        console.error('❌ Error en useQuery de pagos:', error);
+    }
 
     const handleView = (pago: Pago) => {
         setSelectedPago(pago);
@@ -62,12 +84,12 @@ export const MyPaymentsPage = () => {
     };
 
     // Filtrar pagos
-    const filteredPagos = pagos.filter((pago) => {
+    const filteredPagos = Array.isArray(pagos) ? pagos.filter((pago) => {
         if (!searchTerm) return true;
 
         const searchLower = searchTerm.toLowerCase();
         return pago.id.toLowerCase().includes(searchLower);
-    });
+    }) : [];
 
     const getMetodoPagoLabel = (metodo: string) => {
         const labels: Record<string, string> = {
@@ -95,8 +117,9 @@ export const MyPaymentsPage = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-screen">
+            <div className="flex flex-col justify-center items-center h-screen">
                 <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="mt-4 text-muted-foreground">Cargando pagos...</p>
             </div>
         );
     }

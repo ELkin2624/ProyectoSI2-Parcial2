@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Mic, MicOff, Send, Bot, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { generarReporteIA, descargarArchivo } from '@/admin/actions/reportes.action';
 
 interface Message {
     id: string;
@@ -146,36 +147,15 @@ export const AIReportChat = () => {
         setIsLoading(true);
 
         try {
-            // Llamar al endpoint del microservicio de reportes con IA
-            const response = await fetch('http://localhost:8001/generar-reporte-ia', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    prompt: trimmedText
-                })
-            });
+            // Usar la acción centralizada que llama al backend de Django
+            const result = await generarReporteIA({ prompt: trimmedText });
 
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || 'Error al comunicarse con el servidor');
-            }
-
-            // Verificar si la respuesta es un archivo Excel
-            const contentType = response.headers.get('content-type');
-
-            if (contentType?.includes('spreadsheet') || contentType?.includes('excel')) {
+            if (result.isFile) {
                 // Es un archivo Excel, descargarlo
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `reporte_${Date.now()}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+                descargarArchivo(
+                    result.data,
+                    result.fileName || `reporte_${Date.now()}.xlsx`
+                );
 
                 const assistantMessage: Message = {
                     id: (Date.now() + 1).toString(),
@@ -188,7 +168,7 @@ export const AIReportChat = () => {
                 toast.success('Reporte descargado exitosamente');
             } else {
                 // Es JSON con datos
-                const data = await response.json();
+                const data = result.data;
 
                 // Formatear la respuesta de manera legible
                 let responseContent = '';
@@ -229,16 +209,19 @@ export const AIReportChat = () => {
         } catch (error) {
             console.error('Error al enviar mensaje:', error);
 
-            // Respuesta de error
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
-                content: 'Lo siento, hubo un error al procesar tu solicitud. Por favor, intenta de nuevo.',
+                content: error instanceof Error
+                    ? `❌ ${error.message}`
+                    : 'Lo siento, hubo un error al procesar tu solicitud. Por favor, intenta de nuevo.',
                 timestamp: new Date()
             };
 
             setMessages(prev => [...prev, errorMessage]);
-            toast.error('Error al comunicarse con el asistente de IA');
+
+            const toastMessage = error instanceof Error ? error.message : 'Error al comunicarse con el asistente de IA';
+            toast.error(toastMessage);
         } finally {
             setIsLoading(false);
         }

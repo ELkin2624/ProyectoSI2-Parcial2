@@ -6,4 +6,5 @@ export * from './products/AdminProductsPage';
 export * from './sales/AdminSalesPage';
 export * from './salesHistory/AdminSalesHistory';
 export * from './reports/AdminReportsPage';
+export * from './predictions/SalesPredictionsPage';
 export { default as SettingsPage } from './SettingsPage';

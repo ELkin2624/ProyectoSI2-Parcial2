@@ -35,10 +35,16 @@ export const MyAddressesPage = () => {
     });
 
     // Query para obtener direcciones
-    const { data: addresses, isLoading } = useQuery<Address[]>({
+    const { data: addresses = [], isLoading, error, refetch } = useQuery<Address[]>({
         queryKey: ['addresses'],
         queryFn: getMyAddressesAction,
+        retry: 2,
+        staleTime: 1000 * 60 * 5, // 5 minutos
     });
+
+    if (error) {
+        console.error('❌ Error al cargar direcciones:', error);
+    }
 
     // Mutation para crear dirección
     const createMutation = useMutation({
@@ -132,8 +138,18 @@ export const MyAddressesPage = () => {
 
     if (isLoading) {
         return (
-            <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[400px]">
+            <div className="container mx-auto px-4 py-8 flex flex-col justify-center items-center min-h-[400px]">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="mt-4 text-muted-foreground">Cargando direcciones...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="container mx-auto px-4 py-8 flex flex-col justify-center items-center min-h-[400px]">
+                <p className="text-red-600 mb-4">Error al cargar las direcciones</p>
+                <Button onClick={() => refetch()}>Reintentar</Button>
             </div>
         );
     }
@@ -299,9 +315,11 @@ export const MyAddressesPage = () => {
                     </Dialog>
                 </div>
 
+
                 {/* Lista de direcciones */}
-                {!addresses || addresses.length === 0 ? (
+                {!Array.isArray(addresses) || addresses.length === 0 ? (
                     <Card>
+                        console.log(Array.isArray(addresses));
                         <CardContent className="flex flex-col items-center justify-center py-12">
                             <MapPin className="h-16 w-16 text-muted-foreground mb-4" />
                             <p className="text-lg font-medium mb-2">No tienes direcciones registradas</p>
