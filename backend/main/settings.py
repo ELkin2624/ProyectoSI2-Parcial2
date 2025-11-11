@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'apps.ecommerce.carritos',
     'apps.ecommerce.pagos',
     'apps.ecommerce.pedidos',
+    'apps.ia_services',
 ]
 
 AUTH_USER_MODEL = 'usuarios.CustomUser'
