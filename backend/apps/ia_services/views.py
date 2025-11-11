@@ -55,13 +55,13 @@ def llamar_servicio_prediccion(request):
 def llamar_servicio_reporte(request):
     """
     Vista "puente" que llama al microservicio de reportes
-    y devuelve el archivo Excel.
+    y devuelve el archivo Excel O el JSON de datos.
     """
     try:
         # 1. Obtenemos el prompt del frontend
         data = json.loads(request.body)
         prompt = data.get('prompt')
-
+        
         if not prompt:
             return JsonResponse({'error': 'Falta el prompt'}, status=400)
 
@@ -69,32 +69,45 @@ def llamar_servicio_reporte(request):
         payload = {'prompt': prompt}
 
         # 3. ¡LA LLAMADA! Usamos stream=True
-        # stream=True es CLAVE. Le dice a requests que no descargue
-        # todo el archivo en memoria, sino que mantenga la conexión abierta.
+        # Esto es importante para manejar archivos grandes sin
+        # cargar toda la memoria de Django.
         response = requests.post(URL_SERVICIO_REPORTES, json=payload, stream=True, timeout=60)
-
+        
+        # 4. Verificamos si FastAPI dio un error (4xx o 5xx)
         response.raise_for_status()
 
-        # 4. ¡STREAMING! Pasamos el archivo al frontend
-        # Le decimos a Django que devuelva la respuesta (los bytes del archivo)
-        # tal cual la recibe del microservicio, pedazo por pedazo.
-        return StreamingHttpResponse(
-            response.iter_content(chunk_size=8192), # Lee en pedazos de 8KB
-            content_type=response.headers['Content-Type'],
-            headers={
-                'Content-Disposition': response.headers['Content-Disposition']
-            }
-        )
-
+        # --- ¡INICIO DEL ARREGLO! ---
+        # 5. Revisamos QUÉ TIPO de respuesta recibimos
+        
+        # Si el header 'Content-Disposition' EXISTE, es un archivo Excel.
+        if 'Content-Disposition' in response.headers:
+            # Es un archivo, así que lo "streameamos" (transmitimos)
+            return StreamingHttpResponse(
+                response.iter_content(chunk_size=8192), # Lee en pedazos de 8KB
+                content_type=response.headers['Content-Type'],
+                headers={
+                    'Content-Disposition': response.headers['Content-Disposition']
+                }
+            )
+        else:
+            # NO es un archivo, por lo tanto DEBE ser JSON.
+            # Lo leemos y lo devolvemos como un JsonResponse normal.
+            # .json() funciona bien con stream=True, leerá el stream y lo cerrará.
+            return JsonResponse(response.json())
+        # --- FIN DEL ARREGLO ---
+        
     except requests.exceptions.HTTPError as e:
-        # Si FastAPI dio un error (ej. 400), no será un archivo
-        # sino un JSON de error, así que lo leemos
+        # Error si FastAPI devuelve 4xx o 5xx (ej. prompt no entendido)
         try:
+            # Intentamos leer el error JSON que envió FastAPI
             error_json = e.response.json()
         except:
             error_json = e.response.text
         return JsonResponse({'error': f'Error del microservicio: {error_json}'}, status=e.response.status_code)
+    
     except requests.exceptions.ConnectionError:
         return JsonResponse({'error': 'El servicio de reportes no está disponible.'}, status=503)
+    
     except Exception as e:
-        return JsonResponse({'error': f'Ocurrió un error inesperado: {str(e)}'}, status=500)
+        # Cualquier otro error (ej. JSON malformado en el request inicial)
+        return JsonResponse({'error': f'Ocurrió un error inesperado en Django: {str(e)}'}, status=500)
