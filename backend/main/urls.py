@@ -32,4 +32,5 @@ urlpatterns = [
     path('api/carritos/', include('apps.ecommerce.carritos.urls')),
     path('api/pedidos/', include('apps.ecommerce.pedidos.urls')),
     path('api/pagos/', include('apps.ecommerce.pagos.urls')),
+    path('api/ia/', include('apps.ia_services.urls')),
 ]
