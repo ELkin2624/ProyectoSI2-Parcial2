@@ -5,3 +5,4 @@ export * from './product/ui/ProductForm';
 export * from './products/AdminProductsPage';
 export * from './sales/AdminSalesPage';
 export * from './salesHistory/AdminSalesHistory';
+export * from './reports/AdminReportsPage';

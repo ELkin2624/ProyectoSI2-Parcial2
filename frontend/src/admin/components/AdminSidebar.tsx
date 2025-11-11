@@ -12,7 +12,8 @@ import {
   ChevronRight,
   Package,
   ClipboardList,
-  CreditCard
+  CreditCard,
+  PieChart
 } from 'lucide-react';
 import { CustomLogo } from '@/components/custom/CustomLogo';
 import { Link, useLocation } from 'react-router';
@@ -38,6 +39,7 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) 
     { icon: Users, label: 'Clientes', to: '/admin/users' },
     { icon: ShoppingCart, label: 'Ventas', to: '/admin/sales' },
     { icon: FileText, label: 'Historial', to: '/admin/sales-history' },
+    { icon: PieChart, label: 'Reportes', to: '/admin/reports' },
     { icon: Bell, label: 'Notificaciones' },
     { icon: Settings, label: 'Ajustes' },
     { icon: HelpCircle, label: 'Ayuda' }
