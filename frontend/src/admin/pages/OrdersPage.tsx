@@ -228,7 +228,7 @@ export default function OrdersPage() {
                                             <p className="font-medium">
                                                 {order.usuario?.first_name && order.usuario?.last_name
                                                     ? `${order.usuario.first_name} ${order.usuario.last_name}`
-                                                    : 'Sin nombre'
+                                                    : order.usuario?.email || order.email_cliente
                                                 }
                                             </p>
                                             <p className="text-sm text-gray-500">

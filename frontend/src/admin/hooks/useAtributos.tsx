@@ -128,13 +128,18 @@ export const useAtributos = () => {
     const getValoresPorAtributo = () => {
         if (!valoresQuery.data) return {};
 
-        return valoresQuery.data.reduce((acc, valor) => {
+        // Manejar tanto respuestas paginadas como arrays directos
+        const valoresArray = Array.isArray(valoresQuery.data)
+            ? valoresQuery.data
+            : [];
+
+        return valoresArray.reduce((acc, valor) => {
             if (!acc[valor.atributo.id]) {
                 acc[valor.atributo.id] = [];
             }
             acc[valor.atributo.id].push(valor);
             return acc;
-        }, {} as Record<number, typeof valoresQuery.data>);
+        }, {} as Record<number, typeof valoresArray>);
     };
 
     const isLoading = atributosQuery.isLoading || valoresQuery.isLoading;

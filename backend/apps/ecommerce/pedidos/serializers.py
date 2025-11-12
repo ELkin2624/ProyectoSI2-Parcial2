@@ -136,8 +136,17 @@ class AdminPedidoSerializer(serializers.ModelSerializer):
     def get_usuario(self, obj):
         """
         Devuelve los datos del usuario de forma expandida.
+        Si el usuario fue eliminado (null), devuelve datos del email_cliente guardado.
         """
         user = obj.usuario
+        if user is None:
+            # Usuario eliminado, usar datos guardados del pedido
+            return {
+                'id': None,
+                'email': obj.email_cliente,
+                'first_name': 'Usuario',
+                'last_name': 'Eliminado',
+            }
         return {
             'id': user.id,
             'email': user.email,

@@ -140,12 +140,14 @@ class AdminAtributoViewSet(viewsets.ModelViewSet):
     queryset = Atributo.objects.all()
     serializer_class = AtributoSerializer
     permission_classes = [permissions.IsAdminUser]
+    pagination_class = None  # Desactivar paginación para obtener todos los atributos
 
 
 class AdminValorAtributoViewSet(viewsets.ModelViewSet):
     """(ADMIN) CRUD completo para Valores de Atributos (Ej: M, L, Rojo). OPTIMIZADO."""
     serializer_class = ValorAtributoSerializer
     permission_classes = [permissions.IsAdminUser]
+    pagination_class = None  # Desactivar paginación para obtener todos los valores
     
     def get_queryset(self):
         """Optimiza la carga de valores con sus atributos."""
