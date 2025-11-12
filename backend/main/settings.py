@@ -9,7 +9,7 @@ dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 SECRET_KEY = os.environ.get('SECRET_KEY')
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -105,6 +105,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",  # Vue
     "http://localhost:4200",  # Angular
     "http://localhost:4000",
+]
+
+# Permitir todos los orígenes de localhost para Flutter Web (usa puertos dinámicos)
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",  # Flutter Web usa puertos dinámicos
+    r"^http://127\.0\.0\.1:\d+$",
 ]
 
 REST_FRAMEWORK = {
