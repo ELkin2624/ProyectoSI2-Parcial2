@@ -19,3 +19,6 @@ openpyxl
 # Para conectar a la Base de Datos
 sqlalchemy
 psycopg2-binary
+
+# Para la generación de reportes en PDF
+reportlab
