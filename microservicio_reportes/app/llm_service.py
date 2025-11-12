@@ -1,8 +1,10 @@
 # microservicio_reportes/app/llm_service.py
 import cohere
 import json
+import re
 from .core.config import COHERE_API_KEY
 from datetime import date
+from .utils.date_utils import obtener_rango_fechas
 
 # Configura la API de Google
 #genai.configure(api_key=GEMINI_API_KEY)
@@ -10,18 +12,26 @@ co = cohere.Client(COHERE_API_KEY)
 
 def construir_preambulo_sistema(fecha_actual: str) -> str:
     """
-    Crea el preámbulo (prompt de sistema) que instruye a la IA sobre cómo interpretar
-    las solicitudes de generación de reportes para un E-commerce de boutique.
+    Preambulo detallado para interpretar prompts relacionados con reportes de E-commerce de boutique.
     """
-    
     return f"""
-    Tu rol es ser un analista experto en datos de un E-commerce de moda (boutique).
-    Tu tarea es interpretar la solicitud del usuario y devolver SIEMPRE un JSON con:
-    1.  "metric": la métrica o tipo de reporte solicitado.
-    2.  "filters": filtros específicos si el usuario los menciona (opcional).
-    3.  "date_range": rango de fechas (siempre con "start_date" y "end_date" en formato AAAA-MM-DD).
-    4.  "group_by": nivel de agrupación (opcional, ej: "categoria", "producto", "cliente", "vendedor", "sucursal").
-    5.  "format": formato de salida solicitado ("excel", "pdf", "json", etc.).
+    Eres un analista experto en datos de un E-commerce de moda (boutique).
+    Tu tarea es transformar solicitudes en un JSON estructurado y **nada más**.
+    Nunca agregues texto fuera del JSON.
+
+    --- 🧾 ESTRUCTURA JSON ---
+    {{
+      "metric": "tipo_de_reporte",
+      "filters": {{
+         "campo": "valor"
+      }},
+      "date_range": {{
+         "start_date": "AAAA-MM-DD",
+         "end_date": "AAAA-MM-DD"
+      }},
+      "group_by": "opcional",
+      "format": "json|pdf|excel"
+    }}
 
     --- 🧭 REGLAS GENERALES ---
     - Si el usuario no especifica formato, usa "json" por defecto.
@@ -30,131 +40,115 @@ def construir_preambulo_sistema(fecha_actual: str) -> str:
     - Si menciona un mes sin año (ej: "octubre"), asume que es del año actual (2025).
     - Si pide “últimos X días”, calcula el rango dinámicamente.
     - El resultado debe ser SIEMPRE un JSON válido sin texto adicional.
+    - "hoy" o "día actual" → fecha: {fecha_actual}
+    - "ayer" → fecha: (un día antes de {fecha_actual})
+    - "esta semana" → lunes a domingo de la semana actual.
+    - "últimos X días" → calcula dinámicamente.
+    - "este mes" → del 1 al último día del mes actual.
+    - "mes pasado" → mes anterior completo.
+    - "este trimestre" → enero-marzo, abril-junio, etc.
+    - "año actual" → del 1 enero al 31 diciembre de 2025.
+    - Si no se especifica fecha, usa mes actual.
 
-    --- MÉTRICAS DISPONIBLES ---
-    Estas son las métricas que puedes devolver según el contexto de la petición del usuario:
+    --- 📊 MÉTRICAS DISPONIBLES ---
+    🔸 **Ventas**
+    - ventas_totales, cantidad_pedidos, ticket_promedio
+    - ventas_por_categoria, ventas_por_producto, ventas_por_vendedor, ventas_por_sucursal
+    - productos_mas_vendidos, productos_menos_vendidos, productos_sin_stock
 
-    VENTAS:
-    - "ventas_totales" → Monto total de ventas.
-    - "cantidad_pedidos" → Número total de pedidos.
-    - "ticket_promedio" → Promedio por pedido.
-    - "ventas_por_categoria"
-    - "ventas_por_producto"
-    - "ventas_por_cliente"
-    - "ventas_por_vendedor"
-    - "ventas_por_sucursal"
-    - "productos_mas_vendidos"
-    - "productos_menos_vendidos"
-    - "productos_sin_stock"
+    🔸 **Finanzas**
+    - ingresos_brutos, ingresos_netos, costos_totales, margen_beneficio, devoluciones
 
-    INGRESOS Y FINANZAS:
-    - "ingresos_brutos"
-    - "ingresos_netos"
-    - "costos_totales"
-    - "margen_beneficio"
-    - "reembolsos" o "devoluciones"
+    🔸 **Inventario**
+    - stock_actual, inventario_por_categoria, inventario_bajo, rotacion_inventario
 
-    INVENTARIO:
-    - "stock_actual"
-    - "inventario_por_categoria"
-    - "inventario_bajo" (productos con stock crítico)
-    - "rotacion_inventario"
+    🔸 **Clientes**
+    - clientes_nuevos, clientes_frecuentes, clientes_inactivos, retencion_clientes
+    - valor_vida_cliente (LTV), segmento_clientes
 
-    CLIENTES:
-    - "clientes_nuevos"
-    - "clientes_frecuentes"
-    - "clientes_inactivos"
-    - "segmento_clientes" (por edad, género o ubicación si aplica)
+    🔸 **Marketing**
+    - efectividad_descuentos, ventas_por_campaña, conversiones_por_red_social
+    - cupones_mas_usados, campañas_activas
 
-    ENVÍOS Y LOGÍSTICA:
-    - "pedidos_enviados"
-    - "pedidos_pendientes"
-    - "pedidos_entregados"
-    - "tiempo_promedio_entrega"
+    🔸 **Logística**
+    - pedidos_pendientes, pedidos_enviados, pedidos_entregados, tiempo_promedio_entrega
 
-    MARKETING Y PROMOCIONES:
-    - "efectividad_descuentos"
-    - "ventas_por_campaña"
-    - "conversiones_por_red_social"
+    --- ⚙️ FORMATO DE SALIDA ---
+    - Si el usuario no indica formato → usa "json".
+    - No devuelvas explicaciones ni texto adicional, solo el JSON.
 
-    --- EJEMPLOS DE RESPUESTA ---
-    - Usuario: "quiero las ventas totales del mes pasado en excel"
-        {{
-          "metric": "ventas_totales",
-          "date_range": {{"start_date": "2025-10-01", "end_date": "2025-10-31"}},
-          "format": "excel"
-        }}
+    --- 📚 EJEMPLOS ---
+    Usuario: "ventas totales del mes pasado en excel"
+    {{
+      "metric": "ventas_totales",
+      "date_range": {{"start_date": "2025-10-01", "end_date": "2025-10-31"}},
+      "format": "excel"
+    }}
 
-    - Usuario: "muéstrame los productos más vendidos por categoría este mes"
-        {{
-          "metric": "productos_mas_vendidos",
-          "group_by": "categoria",
-          "date_range": {{"start_date": "2025-11-01", "end_date": "2025-11-30"}},
-          "format": "json"
-        }}
+    Usuario: "clientes frecuentes de este mes por sucursal"
+    {{
+      "metric": "clientes_frecuentes",
+      "group_by": "sucursal",
+      "date_range": {{"start_date": "2025-11-01", "end_date": "2025-11-30"}},
+      "format": "json"
+    }}
 
-    - Usuario: "clientes nuevos y frecuentes del último trimestre en PDF"
-        {{
-          "metric": "clientes_nuevos_y_frecuentes",
-          "date_range": {{"start_date": "2025-08-01", "end_date": "2025-10-31"}},
-          "format": "pdf"
-        }}
-
-    - Usuario: "reporte de ingresos netos por sucursal del mes actual"
-        {{
-          "metric": "ingresos_netos",
-          "group_by": "sucursal",
-          "date_range": {{"start_date": "2025-11-01", "end_date": "2025-11-30"}},
-          "format": "json"
-        }}
-
-    - Usuario: "pedidos pendientes de la última semana por vendedor"
-        {{
-          "metric": "pedidos_pendientes",
-          "group_by": "vendedor",
-          "date_range": {{"start_date": "2025-11-01", "end_date": "2025-11-07"}},
-          "format": "json"
-        }}
+    Usuario: "productos con stock bajo"
+    {{
+      "metric": "inventario_bajo",
+      "date_range": {{"start_date": "2025-11-01", "end_date": "2025-11-30"}},
+      "format": "json"
+    }}
     """
+
+
+def limpiar_json(texto: str) -> str:
+    """Extrae el bloque JSON del texto (incluso si hay texto adicional o código markdown)."""
+    match = re.search(r"\{[\s\S]*\}", texto)
+    return match.group(0) if match else "{}"
 
 
 def analizar_prompt_usuario(user_prompt: str) -> dict:
     """
-    Toma el prompt del usuario, lo envía a Cohere y devuelve el JSON estructurado.
+    Envía el prompt del usuario a Cohere y devuelve un JSON estructurado.
+    Incluye manejo de errores, validación y logs.
     """
-    
-    # Obtenemos la fecha de hoy para darle contexto al modelo
-    hoy = date.today().isoformat() # (Ej: '2025-11-08')
-    
-    # 1. Creamos las instrucciones para la IA
+    hoy = date.today().isoformat()
     preambulo = construir_preambulo_sistema(hoy)
-    
-    # 2. Enviamos el prompt del usuario a Cohere
-    print(f"Enviando a Cohere: {user_prompt}")
-    
+    print(f"\n🧠 Prompt del usuario: {user_prompt}\n")
+
     try:
         response = co.chat(
             message=user_prompt,
             preamble=preambulo,
-            temperature=0.2, # Poca "creatividad" para que sea preciso
-            model="command-a-03-2025" # Este es su modelo más nuevo
+            temperature=0.2,
+            model="command-a-03-2025"
         )
+
+        raw_text = response.text.strip()
+        print(f"🪶 Respuesta cruda del modelo:\n{raw_text}\n")
+
+        json_text = limpiar_json(raw_text)
+
+        try:
+            parsed = json.loads(json_text)
+        except json.JSONDecodeError:
+            raise ValueError("El modelo no devolvió un JSON válido.")
         
-        # 3. Extraemos la respuesta
-        respuesta_texto = response.text
-        
-        # 4. Limpiamos y procesamos el JSON
-        if respuesta_texto.startswith("```json"):
-            respuesta_texto = respuesta_texto[7:]
-        if respuesta_texto.endswith("```"):
-            respuesta_texto = respuesta_texto[:-3]
-        
-        # Convertimos el texto (string) en un diccionario de Python (dict)
-        resultado_json = json.loads(respuesta_texto)
-        return resultado_json
+        # Validación básica
+        if "metric" not in parsed or "date_range" not in parsed:
+            raise ValueError("El JSON devuelto no tiene las claves requeridas ('metric' o 'date_range').")
+
+        # Procesamos el rango de fechas relativo
+        if isinstance(parsed.get("date_range"), dict):
+            start = parsed["date_range"].get("start_date", "")
+            end = parsed["date_range"].get("end_date", "")
+            if any(x in (start + end).lower() for x in ["hoy", "mes", "semana", "trimestre", "últimos", "año", "ayer"]):
+                parsed["date_range"] = obtener_rango_fechas(start or end)
+
+        print(f"✅ JSON final con fechas reales: {parsed}")
+        return parsed
 
     except Exception as e:
-        print(f"Error al procesar la respuesta de Cohere: {e}")
-        # A veces la respuesta viene en "response" y no en "text" si hay error
-        print(e)
-        return {"error": "No pude entender la petición."}
+        print(f"❌ Error al analizar el prompt: {e}")
+        return {"error": "No pude entender la petición. Asegúrate de formular una solicitud clara de reporte."}
